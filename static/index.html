@@ -1,0 +1,1462 @@
+    <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic RAG Agent</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #e8eaed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: none;
+            width: 100%;
+            background: #1a1a1a;
+            position: relative;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            background: #2d2d30;
+            border-right: 1px solid #3c4043;
+            z-index: 1000;
+            transition: left 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid #3c4043;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-title {
+            color: #e8eaed;
+            font-size: 1.125rem;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .close-sidebar {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: #9aa0a6;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .close-sidebar:hover {
+            background: #3c4043;
+            color: #e8eaed;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .sidebar-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chat-history-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            color: #e8eaed;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        .chat-history-item:hover {
+            background: #3c4043;
+        }
+
+        .chat-history-item.active {
+            background: #1a73e8;
+        }
+
+        .chat-history-date {
+            color: #9aa0a6;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+        }
+
+        .chat-history-preview {
+            color: #e8eaed;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .new-chat-button {
+            margin: 16px;
+            padding: 12px 16px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .new-chat-button:hover {
+            background: #1557b0;
+        }
+
+        .sidebar-actions {
+            margin: 0 16px 16px 16px;
+            border-top: 1px solid #3c4043;
+            padding-top: 16px;
+        }
+
+        .clear-all-button {
+            width: 100%;
+            padding: 12px 16px;
+            background: transparent;
+            color: #ea4335;
+            border: 1px solid #ea4335;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .clear-all-button:hover {
+            background: #ea4335;
+            color: white;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .header {
+            background: #1a1a1a;
+            color: #e8eaed;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #3c4043;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            color: #e8eaed;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: background 0.2s ease;
+        }
+
+        .menu-button:hover {
+            background: #3c4043;
+        }
+
+        .header h1 {
+            font-size: 1.375rem;
+            font-weight: 400;
+            color: #e8eaed;
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #1a73e8;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .user-avatar:hover {
+            opacity: 0.8;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            background: #1a1a1a;
+            max-width: 768px;
+            margin: 0 auto;
+            width: 100%;
+            /* Ẩn thanh cuộn */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* Internet Explorer 10+ */
+        }
+
+        .messages::-webkit-scrollbar {
+            display: none; /* Webkit browsers (Chrome, Safari, Edge) */
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            animation: fadeIn 0.3s ease-out;
+            max-width: 100%;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+            margin-left: auto;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+            background: #5f6368;
+            color: #e8eaed;
+        }
+
+        .message.user .message-avatar {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: #34a853;
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            background: transparent;
+            padding: 0;
+            max-width: none;
+        }
+
+        .message.user .message-content {
+            background: #1a73e8;
+            color: white;
+            border-radius: 18px;
+            padding: 12px 16px;
+            max-width: 70%;
+        }
+
+        .message-content::before {
+            display: none;
+        }
+
+        .message-text {
+            line-height: 1.6;
+            word-wrap: break-word;
+            color: #e8eaed;
+        }
+
+        .message.user .message-text {
+            color: white;
+        }
+
+        .message-text strong {
+            font-weight: 600;
+            color: #e8eaed;
+        }
+
+        .message.user .message-text strong {
+            color: white;
+        }
+
+        .message-text code {
+            background: #3c4043;
+            color: #e8eaed;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875em;
+        }
+
+        .message.user .message-text code {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .message-text pre {
+            background: #2d2d30;
+            color: #e8eaed;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .message-text pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Markdown styling for assistant messages */
+        .message.assistant .message-text h1,
+        .message.assistant .message-text h2,
+        .message.assistant .message-text h3 {
+            color: #374151;
+            margin: 10px 0 5px 0;
+            font-weight: 600;
+        }
+
+        .message.assistant .message-text h1 { font-size: 1.25em; }
+        .message.assistant .message-text h2 { font-size: 1.1em; }
+        .message.assistant .message-text h3 { font-size: 1em; }
+
+        .message.assistant .message-text strong {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .message.assistant .message-text p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .message.assistant .message-text ul, 
+        .message.assistant .message-text ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .message.assistant .message-text li {
+            margin: 4px 0;
+        }
+
+        .message.assistant .message-text code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .message.assistant .message-text pre {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .message.assistant .message-text blockquote {
+            border-left: 4px solid #e5e7eb;
+            padding-left: 12px;
+            margin: 8px 0;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .message.assistant .message-text a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        .message.assistant .message-text a:hover {
+            text-decoration: underline;
+        }
+
+        .message-meta {
+            margin-top: 10px;
+            font-size: 0.75rem;
+            opacity: 0.7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .message-sources {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .message.user .message-sources {
+            border-top-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .source-tag {
+            display: inline-block;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin: 2px;
+        }
+
+        .message.user .source-tag {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .input-container {
+            padding: 16px 24px 24px;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            width: 100%;
+        }
+
+        .input-wrapper {
+            position: relative;
+            max-width: 768px;
+            width: 100%;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .input-field-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .message-input {
+            width: 100%;
+            padding: 12px 50px 12px 16px;
+            border: 1px solid #5f6368;
+            border-radius: 24px;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s ease;
+            resize: none;
+            min-height: 48px;
+            max-height: 200px;
+            background: #2d2d30;
+            color: #e8eaed;
+            font-family: inherit;
+            /* Ẩn thanh cuộn cho textarea */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* Internet Explorer 10+ */
+        }
+
+        .message-input::-webkit-scrollbar {
+            display: none; /* Webkit browsers (Chrome, Safari, Edge) */
+        }
+
+        .message-input::placeholder {
+            color: #9aa0a6;
+        }
+
+        .message-input:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 1px #1a73e8;
+        }
+
+        .input-actions {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .input-button {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: #9aa0a6;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+
+        .input-button:hover {
+            background: #3c4043;
+            color: #e8eaed;
+        }
+
+        .send-button {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .send-button:hover:not(:disabled) {
+            background: #1557b0;
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #3c4043;
+        }
+
+        .additional-options {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-button {
+            padding: 8px 12px;
+            background: transparent;
+            color: #9aa0a6;
+            border: 1px solid #5f6368;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+
+        .option-button:hover {
+            background: #3c4043;
+            color: #e8eaed;
+            border-color: #9aa0a6;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .loading-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #6b7280;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+        .loading-dot:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state h3 {
+            font-size: 2rem;
+            margin: 0;
+            font-weight: 400;
+            color: #1a73e8;
+            background: linear-gradient(45deg, #4285f4, #34a853, #fbbc04, #ea4335);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stream-container {
+            border: 1px solid #5f6368;
+            border-radius: 12px;
+            margin: 16px 0;
+            overflow: hidden;
+            background: #2d2d30;
+        }
+
+        .stream-header {
+            background: #3c4043;
+            padding: 12px 16px;
+            border-bottom: 1px solid #5f6368;
+            font-weight: 500;
+            color: #e8eaed;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+        }
+
+        .stream-step {
+            padding: 12px 16px;
+            border-bottom: 1px solid #3c4043;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .stream-step:last-child {
+            border-bottom: none;
+        }
+
+        .stream-step.thinking {
+            background: rgba(156, 39, 176, 0.1);
+            border-left: 3px solid #9c27b0;
+        }
+
+        .stream-step.query_generation {
+            background: rgba(255, 152, 0, 0.1);
+            border-left: 3px solid #ff9800;
+        }
+
+        .stream-step.rag_search {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 3px solid #4caf50;
+        }
+
+        .stream-step.reflection {
+            background: rgba(33, 150, 243, 0.1);
+            border-left: 3px solid #2196f3;
+        }
+
+        .stream-step.answer {
+            background: rgba(26, 115, 232, 0.1);
+            border-left: 3px solid #1a73e8;
+        }
+
+        .stream-step.finalizing {
+            background: rgba(103, 58, 183, 0.1);
+            border-left: 3px solid #673ab7;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .stream-step-header {
+            font-weight: 500;
+            color: #e8eaed;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+        }
+
+        .stream-step-content {
+            color: #9aa0a6;
+            line-height: 1.4;
+            font-size: 0.875rem;
+        }
+
+        .stream-step-data {
+            margin-top: 8px;
+            font-size: 0.8125rem;
+            opacity: 0.8;
+            color: #9aa0a6;
+        }
+
+        .query-list {
+            margin-top: 8px;
+            padding-left: 16px;
+        }
+
+        .query-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            margin: 4px 0;
+            border-radius: 6px;
+            font-style: italic;
+            font-size: 0.8125rem;
+            color: #e8eaed;
+        }
+
+        .clear-button {
+            padding: 8px 12px;
+            background: #ea4335;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.8125rem;
+            transition: all 0.2s ease;
+        }
+
+        .clear-button:hover {
+            background: #d33b2c;
+        }
+
+        @media (max-width: 768px) {
+            .messages {
+                padding: 16px;
+                gap: 20px;
+            }
+
+            .header {
+                padding: 12px 16px;
+            }
+
+            .header h1 {
+                font-size: 1.25rem;
+            }
+
+            .input-container {
+                padding: 16px;
+            }
+
+            .message-content {
+                max-width: 90%;
+            }
+            
+            .sidebar {
+                width: 280px;
+                left: -280px;
+            }
+            
+            .input-wrapper {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .additional-options {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">Lịch sử Chat</h2>
+            <button class="close-sidebar" onclick="toggleSidebar()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <button class="new-chat-button" onclick="startNewChat()">
+            <i class="fas fa-plus"></i>
+            Chat mới
+        </button>
+        
+        <div class="sidebar-actions">
+            <button class="clear-all-button" onclick="clearAllChats()">
+                <i class="fas fa-trash"></i>
+                Xóa tất cả chat
+            </button>
+        </div>
+        
+        <div class="sidebar-content" id="chatHistory">
+            <!-- Chat history will be populated here -->
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <button class="menu-button" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>agentic rag</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-avatar">
+                    P
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="messages" id="messages">
+                <div class="empty-state">
+                    <h3>Chào bạn!</h3>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <div class="input-field-container">
+                        <textarea 
+                            class="message-input" 
+                            id="messageInput" 
+                            placeholder="Nhập câu lệnh cho Gemini"
+                            rows="1"
+                        ></textarea>
+                        <div class="input-actions">
+                            <button class="send-button input-button" id="sendButton" onclick="sendMessage()" title="Send">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="additional-options">
+                        <button class="option-button" onclick="toggleStreamMode()">
+                            <i class="fas fa-stream" id="streamIcon"></i>
+                            <span id="streamText">Stream</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isLoading = false;
+        let streamMode = true; // Mặc định bật stream mode
+        let messagesContainer = document.getElementById('messages');
+        let messageInput = document.getElementById('messageInput');
+        let sendButton = document.getElementById('sendButton');
+        let currentStreamContainer = null;
+        let chatSessions = []; // Lưu trữ các phiên chat
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+            
+            if (sidebar.classList.contains('open')) {
+                loadChatSessions();
+            }
+        }
+
+        function startNewChat() {
+            // Lưu chat hiện tại nếu có messages
+            const messages = messagesContainer.children;
+            if (messages.length > 1) { // Có messages ngoài empty state
+                saveChatSession();
+            }
+            
+            // Clear chat hiện tại
+            clearChatSilently();
+            toggleSidebar();
+        }
+
+        function saveChatSession() {
+            const messages = [];
+            const messageElements = messagesContainer.querySelectorAll('.message');
+            
+            messageElements.forEach(msgEl => {
+                const role = msgEl.classList.contains('user') ? 'user' : 'assistant';
+                const content = msgEl.querySelector('.message-text').innerText;
+                messages.push({ role, content, timestamp: new Date().toISOString() });
+            });
+
+            if (messages.length > 0) {
+                const session = {
+                    id: Date.now(),
+                    title: messages[0].content.substring(0, 50) + (messages[0].content.length > 50 ? '...' : ''),
+                    messages: messages,
+                    createdAt: new Date().toISOString()
+                };
+                
+                chatSessions.unshift(session);
+                // Lưu vào localStorage
+                localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+            }
+        }
+
+        function loadChatSessions() {
+            // Load từ localStorage
+            const saved = localStorage.getItem('chatSessions');
+            if (saved) {
+                chatSessions = JSON.parse(saved);
+            }
+            
+            const chatHistoryContainer = document.getElementById('chatHistory');
+            
+            if (chatSessions.length === 0) {
+                chatHistoryContainer.innerHTML = '<div style="color: #9aa0a6; text-align: center; padding: 20px;">Chưa có lịch sử chat</div>';
+                return;
+            }
+            
+            chatHistoryContainer.innerHTML = '';
+            
+            chatSessions.forEach(session => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'chat-history-item';
+                historyItem.onclick = () => loadChatSession(session);
+                
+                const date = new Date(session.createdAt).toLocaleDateString('vi-VN');
+                const time = new Date(session.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                
+                historyItem.innerHTML = `
+                    <div class="chat-history-date">${date} ${time}</div>
+                    <div class="chat-history-preview">${session.title}</div>
+                `;
+                
+                chatHistoryContainer.appendChild(historyItem);
+            });
+        }
+
+        function loadChatSession(session) {
+            // Clear chat hiện tại
+            clearChatSilently();
+            
+            // Load messages từ session
+            session.messages.forEach(msg => {
+                addMessage(msg.role, msg.content, [], {});
+            });
+            
+            toggleSidebar();
+        }
+
+        function clearChatSilently() {
+            messagesContainer.innerHTML = `
+                <div class="empty-state">
+                    <h3>Chào bạn!</h3>
+                </div>
+            `;
+        }
+
+        function clearAllChats() {
+            if (!confirm('Bạn có chắc muốn xóa tất cả lịch sử chat? Hành động này không thể hoàn tác.')) return;
+            
+            try {
+                // Xóa tất cả sessions
+                chatSessions = [];
+                localStorage.removeItem('chatSessions');
+                
+                // Clear chat hiện tại
+                clearChatSilently();
+                
+                // Reload chat history
+                loadChatSessions();
+                
+                // Đóng sidebar
+                toggleSidebar();
+                
+                alert('Đã xóa tất cả lịch sử chat');
+            } catch (error) {
+                alert('Có lỗi khi xóa lịch sử chat');
+            }
+        }
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Send message on Enter (Shift+Enter for new line)
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function toggleStreamMode() {
+            streamMode = !streamMode;
+            const icon = document.getElementById('streamIcon');
+            const text = document.getElementById('streamText');
+            
+            if (streamMode) {
+                icon.className = 'fas fa-stream';
+                text.textContent = 'Stream Mode';
+            } else {
+                icon.className = 'fas fa-bolt';
+                text.textContent = 'Fast Mode';
+            }
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || isLoading) return;
+
+            // Clear empty state
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            // Add user message
+            addMessage('user', message);
+            
+            // Clear input
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+
+            if (streamMode) {
+                await sendStreamMessage(message);
+            } else {
+                await sendRegularMessage(message);
+            }
+            
+            // Auto-save chat session sau khi nhận được response
+            setTimeout(() => {
+                const messageElements = messagesContainer.querySelectorAll('.message');
+                if (messageElements.length >= 2) { // Có cả user và assistant message
+                    saveChatSession();
+                }
+            }, 1000);
+        }
+
+        async function sendStreamMessage(message) {
+            // Show loading
+            showStreamLoading();
+            
+            try {
+                const response = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        config: {}
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                handleStreamMessage(data);
+                            } catch (e) {
+                                console.error('Error parsing stream data:', e);
+                            }
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                hideStreamLoading();
+                addMessage('assistant', `Xin lỗi, đã có lỗi xảy ra: ${error.message}`, [], {});
+            }
+        }
+
+        async function sendRegularMessage(message) {
+            // Show loading
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        config: {}
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Có lỗi xảy ra');
+                }
+
+                // Remove loading
+                hideLoading();
+                
+                // Add assistant message
+                addMessage('assistant', data.response, data.sources, data.stats);
+                
+            } catch (error) {
+                hideLoading();
+                addMessage('assistant', `Xin lỗi, đã có lỗi xảy ra: ${error.message}`, [], {});
+            }
+        }
+
+        function handleStreamMessage(data) {
+            if (data.type === 'thinking') {
+                showStreamStep('thinking', 'Đang suy nghĩ...', data.content, data.data);
+            } else if (data.type === 'query_generation') {
+                showStreamStep('query_generation', 'Tạo câu truy vấn', data.content, data.data);
+            } else if (data.type === 'rag_search') {
+                showStreamStep('rag_search', 'Tìm kiếm thông tin', data.content, data.data);
+            } else if (data.type === 'reflection') {
+                showStreamStep('reflection', 'Đánh giá kết quả', data.content, data.data);
+            } else if (data.type === 'finalizing') {
+                showStreamStep('answer', 'Hoàn thiện câu trả lời', data.content, data.data);
+            } else if (data.type === 'answer') {
+                hideStreamLoading();
+                addMessage('assistant', data.content, data.data.sources || [], data.data.stats || {});
+            } else if (data.type === 'complete') {
+                hideStreamLoading();
+            } else if (data.type === 'error') {
+                hideStreamLoading();
+                addMessage('assistant', data.content, [], {});
+            }
+        }
+
+        function showStreamStep(type, title, content, data) {
+            if (!currentStreamContainer) return;
+
+            const stepDiv = document.createElement('div');
+            stepDiv.className = `stream-step ${type}`;
+            
+            const stepHeader = document.createElement('div');
+            stepHeader.className = 'stream-step-header';
+            
+            let icon = '';
+            switch(type) {
+                case 'thinking': icon = '<i class="fas fa-brain"></i>'; break;
+                case 'query_generation': icon = '<i class="fas fa-search"></i>'; break;
+                case 'rag_search': icon = '<i class="fas fa-database"></i>'; break;
+                case 'reflection': icon = '<i class="fas fa-eye"></i>'; break;
+                case 'answer': icon = '<i class="fas fa-comment"></i>'; break;
+                case 'finalizing': icon = '<i class="fas fa-pen"></i>'; break;
+                default: icon = '<i class="fas fa-cog"></i>';
+            }
+            
+            stepHeader.innerHTML = `${icon} ${title}`;
+            
+            const stepContent = document.createElement('div');
+            stepContent.className = 'stream-step-content';
+            stepContent.textContent = content;
+            
+            stepDiv.appendChild(stepHeader);
+            stepDiv.appendChild(stepContent);
+            
+            // Add data if available
+            if (data && Object.keys(data).length > 0) {
+                const stepData = document.createElement('div');
+                stepData.className = 'stream-step-data';
+                
+                if (data.queries && data.queries.length > 0) {
+                    const queryList = document.createElement('div');
+                    queryList.className = 'query-list';
+                    data.queries.forEach(query => {
+                        const queryItem = document.createElement('div');
+                        queryItem.className = 'query-item';
+                        queryItem.textContent = query;
+                        queryList.appendChild(queryItem);
+                    });
+                    stepData.appendChild(queryList);
+                }
+                
+                if (data.query) {
+                    stepData.innerHTML += `<strong>Truy vấn:</strong> "${data.query}"`;
+                }
+                
+                if (data.results_count !== undefined) {
+                    stepData.innerHTML += `<br><strong>Kết quả:</strong> ${data.results_count} mục`;
+                }
+                
+                if (data.is_sufficient !== undefined) {
+                    if (data.is_sufficient) {
+                        stepData.innerHTML += `<br><strong>Trạng thái:</strong> ✅ Đủ thông tin`;
+                    } else {
+                        stepData.innerHTML += `<br><strong>Trạng thái:</strong> ❌ Cần thêm thông tin`;
+                        if (data.knowledge_gap) {
+                            stepData.innerHTML += `<br><strong>Thiếu:</strong> ${data.knowledge_gap}`;
+                        }
+                    }
+                }
+                
+                if (data.rag_loop_count !== undefined) {
+                    stepData.innerHTML += `<br><strong>Vòng RAG:</strong> ${data.rag_loop_count}`;
+                }
+                
+                if (data.follow_up_queries && data.follow_up_queries.length > 0) {
+                    stepData.innerHTML += `<br><strong>Câu truy vấn tiếp theo:</strong> ${data.follow_up_queries.length} câu`;
+                }
+                
+                stepDiv.appendChild(stepData);
+            }
+            
+            currentStreamContainer.appendChild(stepDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showStreamLoading() {
+            isLoading = true;
+            sendButton.disabled = true;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            messageDiv.id = 'stream-message';
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = '<i class="fas fa-robot"></i>';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            const streamContainer = document.createElement('div');
+            streamContainer.className = 'stream-container';
+            streamContainer.id = 'stream-container';
+            
+            const streamHeader = document.createElement('div');
+            streamHeader.className = 'stream-header';
+            streamHeader.innerHTML = '<i class="fas fa-cogs"></i> Agentic RAG đang xử lý...';
+            
+            streamContainer.appendChild(streamHeader);
+            messageContent.appendChild(streamContainer);
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            currentStreamContainer = streamContainer;
+        }
+
+        function hideStreamLoading() {
+            isLoading = false;
+            sendButton.disabled = false;
+            currentStreamContainer = null;
+        }
+
+        function addMessage(role, content, sources = [], stats = {}) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = role === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            const messageText = document.createElement('div');
+            messageText.className = 'message-text';
+            
+            // Render content based on role
+            if (role === 'assistant') {
+                // For assistant messages, render Markdown
+                try {
+                    messageText.innerHTML = marked.parse(content);
+                } catch (error) {
+                    // Fallback to simple replace if marked fails
+                    messageText.innerHTML = content.replace(/\n/g, '<br>');
+                }
+            } else {
+                // For user messages, simple line break replacement
+                messageText.innerHTML = content.replace(/\n/g, '<br>');
+            }
+            
+            messageContent.appendChild(messageText);
+            
+            // Add sources if available
+            if (sources && sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'message-sources';
+                sourcesDiv.innerHTML = '<strong>Nguồn:</strong> ' + 
+                    sources.map(source => `<span class="source-tag">${source}</span>`).join('');
+                messageContent.appendChild(sourcesDiv);
+            }
+            
+            // Add stats if available and it's assistant message
+            if (role === 'assistant' && stats && Object.keys(stats).length > 0) {
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'message-meta';
+                
+                let statsText = [];
+                if (stats.rag_loop_count !== undefined) statsText.push(`${stats.rag_loop_count} vòng RAG`);
+                if (stats.total_queries !== undefined) statsText.push(`${stats.total_queries} truy vấn`);
+                if (stats.unique_sources !== undefined) statsText.push(`${stats.unique_sources} nguồn`);
+                
+                metaDiv.innerHTML = `
+                    <span>${statsText.join(' • ')}</span>
+                    <span>${new Date().toLocaleTimeString('vi-VN')}</span>
+                `;
+                messageContent.appendChild(metaDiv);
+            }
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showLoading() {
+            isLoading = true;
+            sendButton.disabled = true;
+            
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.id = 'loading';
+            loadingDiv.innerHTML = `
+                <div class="message-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <span>Agent đang tìm kiếm và xử lý...</span>
+                    <div class="loading-dots">
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                    </div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(loadingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideLoading() {
+            isLoading = false;
+            sendButton.disabled = false;
+            
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.remove();
+            }
+        }
+
+        function toggleConfig() {
+            alert('Tính năng cấu hình sẽ được thêm trong phiên bản tiếp theo!');
+        }
+
+        // Load chat history on page load
+        async function loadChatHistory() {
+            try {
+                const response = await fetch('/api/chat/history');
+                const data = await response.json();
+                
+                if (data.messages && data.messages.length > 0) {
+                    // Clear empty state
+                    const emptyState = messagesContainer.querySelector('.empty-state');
+                    if (emptyState) {
+                        emptyState.remove();
+                    }
+                    
+                    // Add messages
+                    data.messages.forEach(msg => {
+                        addMessage(msg.role, msg.content, msg.sources || [], msg.stats || {});
+                    });
+                }
+            } catch (error) {
+                console.error('Lỗi khi tải lịch sử chat:', error);
+            }
+        }
+
+        // Load history when page loads
+        window.addEventListener('load', loadChatHistory);
+    </script>
+</body>
+</html>
