@@ -23,9 +23,11 @@ class ModelManager:
             api_key="lm-studio",  # LMStudio doesn't require a real API key
             temperature=0.7,
         )
-        
-        # Initialize embedding model with Sentence Transformers
-        self.embedding_model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
+        # Initialize embedding model with Sentence Transformers (force GPU)
+        self.embedding_model = SentenceTransformer(
+            "Qwen/Qwen3-Embedding-0.6B",
+            device="cuda"  # Force GPU
+        )
         
         # Initialize Qdrant client
         self.qdrant_client = QdrantClient(
@@ -42,10 +44,10 @@ class ModelManager:
         return self.embedding_model
     
     def generate_embeddings(self, texts):
-        """Generate embeddings for a list of texts"""
+        """Generate embeddings for a list of texts (always use GPU)"""
         if isinstance(texts, str):
             texts = [texts]
-        return self.embedding_model.encode(texts)
+        return self.embedding_model.encode(texts, device="cuda")
     
     def search_similar_documents(
         self, 
