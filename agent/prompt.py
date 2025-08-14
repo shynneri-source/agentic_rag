@@ -90,6 +90,19 @@ Hướng dẫn:
 - Đảm bảo câu trả lời trực tiếp và đầy đủ.
 - Chỉ sử dụng thông tin có trong nội dung RAG, không tự tạo thêm thông tin.
 
+Định dạng đầu ra:
+- Trả về JSON với chính xác các khóa sau:
+   - "content": Nội dung câu trả lời chính
+   - "summary": Tóm tắt ngắn gọn về quá trình tìm kiếm thông tin
+
+Ví dụ:
+```json
+{{
+    "content": "Câu trả lời đầy đủ cho câu hỏi, có thể bao gồm nhiều đoạn và trích dẫn nguồn",
+    "summary": "Đã tìm thấy thông tin từ X nguồn, qua Y vòng tìm kiếm, với các chủ đề chính là A, B, C"
+}}
+```
+
 Ngữ cảnh người dùng:
 - Câu hỏi: {research_topic}
 - Số lượt RAG đã thực hiện: {rag_loop_count}

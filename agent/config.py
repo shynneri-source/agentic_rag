@@ -4,7 +4,7 @@ from typing import Any, Optional
 from langchain_core.runnables import RunnableConfig
 
 
-model = "qwen/qwen3-4b"
+model = "qwen/qwen3-30b-a3b"
 
 class Configuration(BaseModel):
     """The configuration for the agent."""
@@ -43,7 +43,7 @@ class Configuration(BaseModel):
     )
     
     number_of_initial_queries: int = Field(
-        default=3,
+        default=1,
         metadata={"description": "The number of initial search queries to generate."},
     )
     

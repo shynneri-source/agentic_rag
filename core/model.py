@@ -18,7 +18,7 @@ class ModelManager:
         """Initialize LLM and embedding models"""
         # Initialize LLM with LangChain OpenAI for LMStudio
         self.llm = ChatOpenAI(
-            model="qwen/qwen3-4b",
+            model="qwen/qwen3-30b-a3b",
             base_url="http://localhost:1234/v1",  # Default LMStudio local server
             api_key="lm-studio",  # LMStudio doesn't require a real API key
             temperature=0.7,

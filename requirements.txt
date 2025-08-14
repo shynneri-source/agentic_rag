@@ -1,30 +1,30 @@
 # Requirements for Agentic RAG Web Interface
 
 # Web Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+fastapi
+uvicorn[standard]
 
 # CORS support
-python-multipart==0.0.6
+python-multipart
 
 # Data validation
-pydantic==2.5.0
+pydantic
 
 # Async support
-aiofiles==23.2.1
+aiofiles
 
 # Existing requirements for the RAG agent
-langchain==0.0.352
-langchain-openai==0.0.2
-langchain-core==0.1.0
-langgraph==0.0.20
+langchain
+langchain-openai
+langchain-core
+langgraph
 
 # For document processing and embeddings
-sentence-transformers==2.2.2
-faiss-cpu==1.7.4
-python-docx==1.1.0
-PyPDF2==3.0.1
+sentence-transformers
+faiss-cpu
+python-docx
+PyPDF2
 
 # Utilities
-python-dotenv==1.0.0
-requests==2.31.0
+python-dotenv
+requests

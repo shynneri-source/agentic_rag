@@ -22,3 +22,11 @@ class rag_query_list(BaseModel):
     rationale: str = Field(
         description="A brief explanation of why these queries are relevant to the research topic."
     )
+
+class FinalAnswer(BaseModel):
+    content: str = Field(
+        description="The final answer content"
+    )
+    summary: str = Field(
+        description="A brief summary of the research process"
+    )

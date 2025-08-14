@@ -76,10 +76,10 @@ async def chat_with_agent(request: ChatRequest):
     try:
         # Cấu hình mặc định
         default_config = {
-            "query_generator_model": "qwen/qwen3-4b",
-            "reflection_model": "qwen/qwen3-4b", 
-            "rag_model": "qwen/qwen3-4b",
-            "answer_model": "qwen/qwen3-4b",
+            "query_generator_model": "qwen/qwen3-30b-a3b",
+            "reflection_model": "qwen/qwen3-30b-a3b", 
+            "rag_model": "qwen/qwen3-30b-a3b",
+            "answer_model": "qwen/qwen3-30b-a3b",
             "max_rag_loops": 3,
             "number_of_initial_queries": 2
         }
@@ -182,10 +182,10 @@ async def chat_with_agent_stream(request: ChatRequest):
         try:
             # Cấu hình mặc định
             default_config = {
-                "query_generator_model": "qwen/qwen3-4b",
-                "reflection_model": "qwen/qwen3-4b", 
-                "rag_model": "qwen/qwen3-4b",
-                "answer_model": "qwen/qwen3-4b",
+                "query_generator_model": "qwen/qwen3-30b-a3b",
+                "reflection_model": "qwen/qwen3-30b-a3b", 
+                "rag_model": "qwen/qwen3-30b-a3b",
+                "answer_model": "qwen/qwen3-30b-a3b",
                 "max_rag_loops": 3,
                 "number_of_initial_queries": 2
             }

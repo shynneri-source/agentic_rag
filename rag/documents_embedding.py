@@ -331,7 +331,7 @@ class DocumentEmbeddingManager:
                 "vectors_count": collection_info.vectors_count,
                 "segments_count": collection_info.segments_count,
                 "status": collection_info.status,
-                "optimizer_status": collection_info.optimizer_status.status if collection_info.optimizer_status else None,
+                "optimizer_status": str(collection_info.optimizer_status) if collection_info.optimizer_status else None,
             }
         except Exception as e:
             return {"error": f"Failed to get collection stats: {str(e)}"}

@@ -1,4 +1,5 @@
 import os
+from IPython.display import Image, display
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.types import Send
@@ -12,7 +13,7 @@ from agent.config import Configuration
 
 from agent.prompt import query_writer_instructions, reflection_instructions, answer_instructions
 
-from agent.schema import Reflection, rag_query_list
+from agent.schema import Reflection, rag_query_list, FinalAnswer
 
 from agent.utils import get_research_topic
 
@@ -143,12 +144,34 @@ def finalize_answer(state: OverallState, config: RunnableConfig):
         temperature=0.7,
     )
 
-    result = llm.invoke(formatted_prompt)
+    structured_llm = llm.with_structured_output(FinalAnswer)
+    result = structured_llm.invoke(formatted_prompt)
 
     return {
-        "user_messages": [AIMessage(result.content)]
+        "user_messages": [AIMessage(content=result.content)],
+        "summary": result.summary,
+        "sources": state.get("source_gathered", []),
+        "rag_loop_count": state.get("rag_loop_count", 0)
     }
 
+def get_graph_visualization(self, image_path: str = "./workflow.png") -> None:
+    """Generate an .png image of the current graph workflow
+
+    Args:
+        image_path (str, optional): The path to save the image. Defaults to "./workflow.png".
+    """
+    try:
+        png_bytes = self.graph.get_graph().draw_mermaid_png()
+
+        # Display the image
+        display(Image(png_bytes))
+
+        # Save the image to a file
+        with open(image_path, "wb") as f:
+            f.write(png_bytes)
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
 builder = StateGraph(OverallState, config_schema=Configuration)
 
 
@@ -169,3 +192,14 @@ builder.add_conditional_edges("reflection", evaluate_research, ["finalize_answer
 builder.add_edge("finalize_answer", END)
 
 graph = builder.compile(name="agentic-rag")
+
+# Generate and save the workflow visualization
+try:
+    png_bytes = graph.get_graph().draw_mermaid_png()
+    
+    # Save the image to a file
+    with open("workflow.png", "wb") as f:
+        f.write(png_bytes)
+    print("Workflow visualization has been saved to workflow.png")
+except Exception as e:
+    print(f"An error occurred while generating workflow visualization: {e}")
