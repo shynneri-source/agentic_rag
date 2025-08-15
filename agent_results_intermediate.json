@@ -1,0 +1,46 @@
+[
+  {
+    "cau_hoi": "Lễ kỷ niệm 25 năm Chiến dịch Thanh niên tình nguyện hè tại Bắc Giang được tổ chức vào ngày nào?",
+    "ket_qua_agent": "Lễ kỷ niệm 25 năm Chiến dịch Thanh niên tình nguyện Hè tại Bắc Giang được tổ chức vào ngày 13/10/2024 [Nguồn 1]."
+  },
+  {
+    "cau_hoi": "Ai là một trong những lãnh đạo cấp cao tham dự Lễ kỷ niệm 25 năm Chiến dịch Thanh niên tình nguyện hè tại Bắc Giang?",
+    "ket_qua_agent": "Một trong những lãnh đạo cấp cao tham dự Lễ kỷ niệm 25 năm Chiến dịch Thanh niên tình nguyện hè tại Bắc Giang là đồng chí Mai Sơn, Phó Chủ tịch thường trực UBND tỉnh. [Nguồn 1]"
+  },
+  {
+    "cau_hoi": "Tên gọi ban đầu của phong trào thanh niên tình nguyện hè tại Bắc Giang khi triển khai năm 1999 là gì?",
+    "ket_qua_agent": "Tên gọi ban đầu của phong trào thanh niên tình nguyện hè tại Bắc Giang khi triển khai năm 1999 là 'Chiến dịch ánh sáng văn hóa hè' [Nguồn 1]."
+  },
+  {
+    "cau_hoi": "Khi mới triển khai vào năm 1999, Chiến dịch ánh sáng văn hóa hè tại Bắc Giang có bao nhiêu đội hình và thành viên?",
+    "ket_qua_agent": "Theo bản tóm tắt được cung cấp, khi mới triển khai vào năm 1999, Chiến dịch ánh sáng văn hóa hè tại Bắc Giang có 02 đội hình thanh niên tình nguyện với tổng cộng 50 thành viên [Nguồn 1]."
+  },
+  {
+    "cau_hoi": "Các đội thanh niên tình nguyện ban đầu đã trực tiếp giúp đỡ bao nhiêu xã nghèo ở các huyện vùng cao Bắc Giang?",
+    "ket_qua_agent": "Các đội thanh niên tình nguyện ban đầu đã trực tiếp giúp đỡ 33 xã nghèo ở các huyện vùng cao Bắc Giang. Đây là một phần trong nỗ lực của phong trào thanh niên tình nguyện nhằm hỗ trợ người dân tại các khu vực khó khăn, góp phần cải thiện đời sống và phát triển kinh tế địa phương."
+  },
+  {
+    "cau_hoi": "Ngoài \"Chiến dịch ánh sáng văn hóa hè\", Chiến dịch Thanh niên tình nguyện hè hiện nay đã phát triển rộng hơn bao gồm những chương trình và chiến dịch nào?",
+    "ket_qua_agent": "Chiến dịch Thanh niên tình nguyện hè hiện nay bao gồm các chương trình như 'Tiếp sức mùa thi', 'Mùa hè xanh', 'Hoa phượng đỏ', 'Kỳ nghỉ hồng', và 'Hành quân xanh' [Nguồn 1]. Ngoài ra, tại TP. Đà Nẵng còn có thêm chiến dịch 'Hành quân xanh' và 'Kỳ nghỉ hồng' [Nguồn 3]. Những chương trình này đều hướng đến mục tiêu hỗ trợ cộng đồng, phát triển thanh niên và nâng cao tinh thần tình nguyện. Các mô hình vận hành thường kết hợp giữa tổ chức đội hình tình nguyện, thực hiện công việc cụ thể như xây dựng cơ sở hạ tầng, tổ chức hoạt động cho thiếu nhi, và ứng dụng công nghệ để điều phối hiệu quả hơn [Nguồn 3][Nguồn 4]."
+  },
+  {
+    "cau_hoi": "Theo đồng chí Thân Trung Kiên, trải qua 25 năm triển khai Chiến dịch Thanh niên tình nguyện hè, đã có trên bao nhiêu lượt thanh niên tình nguyện tham gia?",
+    "ket_qua_agent": "Theo đồng chí Thân Trung Kiên, trải qua 25 năm triển khai Chiến dịch Thanh niên tình nguyện hè, đã có trên 5 triệu lượt thanh niên tình nguyện tham gia [nguồn](link)."
+  },
+  {
+    "cau_hoi": "Trong 25 năm triển khai, Chiến dịch Thanh niên tình nguyện hè đã thực hiện được bao nhiêu công trình thanh niên?",
+    "ket_qua_agent": "Trong 25 năm triển khai, Chiến dịch Thanh niên tình nguyện hè đã thực hiện được hơn 22.000 công trình thanh niên, bao gồm các hoạt động như tu sửa đường giao thông nông thôn, lắp đặt công trình thắp sáng đường quê, trồng cây xanh, xây dựng nhà nhân ái và nhiều dự án khác [Nguồn 4]."
+  },
+  {
+    "cau_hoi": "Chiến dịch đã tham gia tu sửa, làm mới bao nhiêu km đường giao thông nông thôn?",
+    "ket_qua_agent": "Chiến dịch đã tu sửa, làm mới tổng cộng 917 km đường giao thông nông thôn theo [nguồn](https://example.com/source3). Ngoài ra, còn có đề cập đến việc cải tạo thêm 7 km đường giao thông nông thôn theo [nguồn](https://example.com/source5), nhưng con số 917 km được nêu rõ nhất và chính xác hơn. "
+  },
+  {
+    "cau_hoi": "Bao nhiêu km công trình thắp sáng đường quê đã được lắp đặt qua Chiến dịch Thanh niên tình nguyện hè?",
+    "ket_qua_agent": "Theo thông tin từ nguồn 2, số km công trình thắp sáng đường quê đã được lắp đặt là 600 km."
+  },
+  {
+    "cau_hoi": "Chiến dịch đã trồng được bao nhiêu cây xanh và thực hiện bao nhiêu km đường hoa thanh niên?",
+    "ket_qua_agent": "Theo thông tin được cung cấp, số lượng cây xanh được trồng trong chiến dịch là 59.868 cây [Nguồn 2]. Ngoài ra, thành tích của chiến dịch thanh niên trong việc làm đường hoa là đã thực hiện 350km đường hoa thanh niên [Nguồn 3]."
+  }
+]

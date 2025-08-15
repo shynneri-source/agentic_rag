@@ -27,13 +27,8 @@ def generate_query(state: OverallState, config: RunnableConfig) ->  QueryGenerat
     if state.get("initial_rag_query_count"):
         config_runnable.number_of_initial_queries = state["initial_rag_query_count"]
 
-    llm = ChatOpenAI(
-        model=config_runnable.query_generator_model,
-        base_url="http://localhost:1234/v1",  # Default LMStudio local server
-        api_key="lm-studio",  # LMStudio doesn't require a real API key
-        temperature=0.7,        
-    )
-
+    from core.model import get_llm
+    llm = get_llm()  # Reuse the existing LLM instance
     structured_llm = llm.with_structured_output(rag_query_list)
 
     fomatted_prompt =  query_writer_instructions.format(
@@ -87,13 +82,8 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
         max_rag_loops=state.get("max_rag_loops", config_runnable.max_rag_loops)
     )
 
-    llm = ChatOpenAI(
-        model=reasoning_model,
-        base_url="http://localhost:1234/v1",  # Default LMStudio local server
-        api_key="lm-studio",  # LMStudio doesn't require a real API key
-        temperature=0.7,
-    )
-
+    from core.model import get_llm
+    llm = get_llm()  # Reuse the existing LLM instance
     result = llm.with_structured_output(Reflection).invoke(fomatted_prompt)
 
     return {

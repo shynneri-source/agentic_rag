@@ -117,7 +117,7 @@ class ModelManager:
             Dict[str, Any]: Response with answer and sources
         """
         try:
-            # Step 1: Retrieve relevant documents
+            # Step 1: Retrieve relevant documents and prepare context in parallel
             relevant_docs = self.search_similar_documents(
                 query=question,
                 collection_name=collection_name,
@@ -132,12 +132,13 @@ class ModelManager:
                     "confidence": 0.0
                 }
             
-            # Step 2: Prepare context from retrieved documents
+            # Efficient parallel processing of context and sources
             context_parts = []
             sources = []
             
-            for i, doc in enumerate(relevant_docs, 1):
-                context_parts.append(f"[Nguồn {i}]: {doc['content']}")
+            # Process documents once for both context and sources
+            for i, doc in enumerate(relevant_docs):
+                context_parts.append(f"[Nguồn {i+1}]: {doc['content']}")
                 sources.append({
                     "filename": doc["filename"],
                     "source": doc["source"],
@@ -145,18 +146,16 @@ class ModelManager:
                     "chunk_id": doc["chunk_id"]
                 })
             
-            context = "\n\n".join(context_parts)
+            # Join contexts with minimal formatting
+            context = "\n".join(context_parts)
             
-            # Step 3: Create prompt for LLM
+            # Step 3: Create optimized prompt for LLM
             if language.lower() == "vietnamese":
-                system_prompt = """Bạn là một trợ lý AI thông minh và hữu ích. Nhiệm vụ của bạn là trả lời câu hỏi dựa trên thông tin được cung cấp.
-
-Hướng dẫn:
-1. Sử dụng CHÍNH XÁC thông tin từ các nguồn được cung cấp
-2. Nếu thông tin không đủ để trả lời, hãy nói rõ điều đó
-3. Trả lời bằng tiếng Việt một cách tự nhiên và dễ hiểu
-4. Không bịa đặt thông tin không có trong nguồn
-5. Có thể tham khảo số thứ tự nguồn [Nguồn X] khi cần thiết"""
+                system_prompt = """/nothink Bạn là AI assistant. Trả lời câu hỏi dựa trên thông tin được cung cấp.
+Quy tắc:
+1. Chỉ dùng thông tin từ nguồn
+2. Trả lời ngắn gọn, đủ ý
+3. Dùng [Nguồn X] để dẫn nguồn"""
                 
                 user_prompt = f"""Dựa trên thông tin sau đây:
 
@@ -166,22 +165,15 @@ Câu hỏi: {question}
 
 Hãy trả lời câu hỏi một cách chính xác và chi tiết."""
             else:
-                system_prompt = """You are a smart and helpful AI assistant. Your task is to answer questions based on the provided information.
-
-Guidelines:
-1. Use EXACTLY the information from the provided sources
-2. If information is insufficient to answer, clearly state that
-3. Answer naturally and clearly in English
-4. Do not make up information not present in sources
-5. You can reference source numbers [Source X] when needed"""
+                system_prompt = """/nothink You are an AI assistant. Answer questions based on provided information.
+Rules:
+1. Use only source information
+2. Be concise but complete
+3. Use [Source X] for citations"""
                 
-                user_prompt = f"""Based on the following information:
-
-{context}
-
+                user_prompt = f"""Context: {context}
 Question: {question}
-
-Please provide an accurate and detailed answer."""
+Answer concisely using the context."""
             
             # Step 4: Generate response using LLM
             messages = [

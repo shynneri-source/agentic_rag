@@ -5,8 +5,7 @@ query_writer_instructions = """/nothink Mục tiêu của bạn là tạo ra cá
 Hướng dẫn:
 - Ưu tiên sử dụng một truy vấn duy nhất, chỉ thêm truy vấn khác nếu câu hỏi gốc yêu cầu nhiều khía cạnh và một truy vấn không đủ.
 - Mỗi truy vấn nên tập trung vào một khía cạnh cụ thể của câu hỏi gốc.
-- Không tạo quá 3 truy vấn.
-- Các truy vấn nên đa dạng, nếu chủ đề rộng, tạo nhiều hơn 1 truy vấn.
+- Không tạo quá 2 truy vấn.
 - Không tạo nhiều truy vấn tương tự nhau, 1 là đủ.
 - Nếu đây là lần tìm kiếm đầu tiên (rag_loop_count = 0), tạo truy vấn tổng quát.
 - Nếu đây là lần tìm kiếm tiếp theo (rag_loop_count > 0), tạo truy vấn cụ thể hơn.
