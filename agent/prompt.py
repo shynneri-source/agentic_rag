@@ -1,4 +1,4 @@
-query_writer_instructions = """/nothink Your goal is to generate search queries for the RAG database. Always generate exactly 2 queries: one in English and one in Vietnamese. This ensures the best coverage across all indexed documents.
+query_writer_instructions = """Your goal is to generate search queries for the RAG database. Always generate exactly 2 queries: one in English and one in Vietnamese. This ensures the best coverage across all indexed documents.
 
 Instructions:
 - Always generate exactly 2 queries: 1 in English, 1 in Vietnamese.
@@ -35,7 +35,7 @@ Input:
 - RAG loop count: {rag_loop_count}
 """
 
-reflection_instructions = """/nothink You are a research analyst evaluating whether the retrieved documents are sufficient to answer the user's question about "{research_topic}".
+reflection_instructions = """You are a research analyst evaluating whether the retrieved documents are sufficient to answer the user's question about "{research_topic}".
 
 Instructions:
 - Identify knowledge gaps or areas needing deeper exploration.
@@ -100,7 +100,7 @@ IMPORTANT: When in doubt, prefer "chat".
 Question: {question}
 Answer:"""
 
-chat_instructions = """/nothink You are a friendly AI assistant. Answer the user's question naturally, warmly, and helpfully.
+chat_instructions = """You are a friendly AI assistant. Answer the user's question naturally, warmly, and helpfully.
 
 You do NOT need to look up documents for this question.
 
@@ -108,7 +108,7 @@ IMPORTANT: Always respond in the SAME language as the user's question. If they a
 
 Question: {question}"""
 
-answer_instructions = """/nothink Generate a high-quality answer to the user's question based on the provided document content.
+answer_instructions = """Generate a high-quality answer to the user's question based on the provided document content.
 
 Instructions:
 - This is the final step of a multi-step research process — do not mention you are the final step.

@@ -6,7 +6,7 @@ This system implements an **Agentic Retrieval-Augmented Generation (RAG)** pipel
 
 **Tech Stack:**
 - **Orchestration:** LangGraph (StateGraph with conditional edges + Send fan-out)
-- **LLM:** Qwen3.5-4B-Q4_K_M (quantized 4-bit) served via LMStudio-compatible API (configurable via `LLM_BASE_URL` in `.env`)
+- **LLM:** Qwen3.5-4B-Q4_K_M (quantized 4-bit) served via llama.cpp server (OpenAI-compatible API, configurable via `LLM_BASE_URL` in `.env`)
 - **Embeddings:** `Qwen/Qwen3-Embedding-0.6B` (SentenceTransformer, 1024-dim)
 - **Vector DB:** Qdrant (local, port 6333, cosine distance)
 - **Chunking:** LangChain `RecursiveCharacterTextSplitter`
@@ -276,9 +276,9 @@ The frontend renders these events with icons (🔎, 🔄, ✅, ❌) and progress
 | `query_writer_instructions` | Structured output (List[str]) + context-dependent generation | Generate search queries |
 | `reflection_instructions` | Structured output (Reflection schema) + anti-hallucination rules | Evaluate information sufficiency |
 | `answer_instructions` | Structured output (FinalAnswer schema) + citation requirement | Generate final answer |
-| `chat_instructions` | /nothink directive + personality prompt | Conversational response |
+| `chat_instructions` | Personality prompt | Conversational response |
 
-**Note on `/nothink`:** All prompts (except router) begin with `/nothink`, a LMStudio directive that disables chain-of-thought reasoning, forcing the model to output directly. This reduces latency and token usage for structured tasks.
+**Note on reasoning control:** Reasoning is disabled via llama.cpp server's `--reasoning off` parameter rather than inline prompt directives. This keeps prompts clean and delegates inference control to the server configuration.
 
 ---
 
@@ -289,7 +289,7 @@ The frontend renders these events with icons (🔎, 🔄, ✅, ❌) and progress
 - **Size:** 4 billion parameters
 - **Quantization:** Q4_K_M (4-bit k-quant, medium) — reduces memory footprint from ~8GB to ~2.5GB
 - **Temperature:** 0.7 (balance between creativity and determinism)
-- **API:** OpenAI-compatible via LMStudio (URL configured via `LLM_BASE_URL` in `.env`)
+- **API:** OpenAI-compatible via llama.cpp server (URL configured via `LLM_BASE_URL` in `.env`)
 
 **Embedding Model:**
 - **Model:** Qwen/Qwen3-Embedding-0.6B

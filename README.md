@@ -10,7 +10,7 @@ An **intelligent Retrieval-Augmented Generation (RAG)** system powered by a Lang
 - **Vietnamese-Optimized** — Document chunking, stop word filtering, and prompts designed for Vietnamese text
 - **Real-Time Streaming** — SSE-based streaming UI showing each agent step (query generation, search, reflection, answer)
 - **Smart Intent Routing** — LLM-based router distinguishes between document queries and general conversation
-- **Local-First** — All models run locally via LMStudio + Qdrant; no cloud dependencies
+- **Local-First** — All models run locally via llama.cpp + Qdrant; no cloud dependencies
 - **Relevance Guard** — Post-retrieval keyword filter prevents hallucination from semantically mismatched documents
 - **Configurable** — Model selection, RAG loop count, query count all adjustable per request
 
@@ -18,30 +18,30 @@ An **intelligent Retrieval-Augmented Generation (RAG)** system powered by a Lang
 
 ## Architecture
 
-```
-User Input → [Router] ─┬─ "chat" ──→ [Chat] ──→ Response
-                        │
-                        └─ "rag" ──→ [Generate Query] ──┬─ 0 queries → [Chat]
-                                                         │
-                                                         └─ N queries → [RAG Research × N] (parallel)
-                                                                              │
-                                                                              ↓
-                                                                         [Reflection]
-                                                                              │
-                                                      ┌── sufficient ─────→ [Final Answer]
-                                                      │    OR max loops
-                                                      │
-                                                      └── insufficient ───→ [RAG Research × M] (parallel)
-                                                                                 │
-                                                                                 ↓
-                                                                            [Reflection] → ...
+```mermaid
+flowchart TD
+    U[User Input] --> R{Router}
+    R -->|chat| C[Chat Node]
+    C --> RESP[Response]
+
+    R -->|rag| GQ[Generate Query]
+    GQ -->|0 queries| C
+
+    GQ -->|N queries| RR1[RAG Research × N]
+    RR1 --> REF[Reflection]
+
+    REF -->|sufficient OR max loops| FA[Final Answer]
+    FA --> RESP
+
+    REF -->|insufficient| RR2[RAG Research × M]
+    RR2 --> REF
 ```
 
 ### Technology Stack
 
 | Component | Technology |
 |---|---|
-| **LLM** | Qwen3.5-4B-Q4_K_M via LMStudio (OpenAI-compatible API) |
+| **LLM** | Qwen3.5-4B-Q4_K_M via llama.cpp (OpenAI-compatible API) |
 | **Embeddings** | Qwen/Qwen3-Embedding-0.6B (SentenceTransformers, 1024-dim) |
 | **Vector DB** | Qdrant (local, cosine distance) |
 | **Orchestration** | LangGraph (StateGraph + Send fan-out) |
@@ -55,7 +55,7 @@ User Input → [Router] ─┬─ "chat" ──→ [Chat] ──→ Response
 
 - Python 3.14+
 - [Qdrant](https://qdrant.tech/) running on `localhost:6333`
-- LMStudio (or compatible OpenAI-API endpoint) serving a GGUF model
+- llama.cpp server (or compatible OpenAI-API endpoint) serving a GGUF model
 - Document files in `documents/` directory
 
 ---
@@ -143,8 +143,8 @@ SSE-streamed chat with real-time agent progress. Events:
 
 | Event | Description |
 |---|---|
-| `thinking` | "Đang khởi tạo agent..." |
-| `query_generation` | Generated search queries |
+| `thinking` | Agent initializing and analyzing question |
+| `query_generation` | Generated search queries (1 EN + 1 VI) |
 | `rag_search` | Search query + results count |
 | `reflection` | Evaluation status + knowledge gap |
 | `answer` | Final answer text with sources |
@@ -164,7 +164,7 @@ agentic-rag/
 ├── agent/                      # LangGraph agent
 │   ├── agent.py                # Graph definition & nodes
 │   ├── config.py               # Configuration schema
-│   ├── prompt.py               # All prompt templates (Vietnamese)
+│   ├── prompt.py               # All prompt templates (English, bilingual queries)
 │   ├── schema.py               # Pydantic models
 │   ├── states.py               # TypedDict state definitions
 │   └── utils.py                # Helper functions
@@ -199,7 +199,15 @@ agentic-rag/
 
 5. **Reflection**: The LLM evaluates all accumulated content against the original question. If information is insufficient, it generates follow-up queries. Up to `max_rag_loops` cycles.
 
-6. **Final Answer**: The LLM synthesizes a final Vietnamese answer with source citations from all retrieved documents.
+6. **Final Answer**: The LLM synthesizes a final answer (in the user's language) with source citations from all retrieved documents.
+
+### llama.cpp Server
+
+Start the llama.cpp server with reasoning disabled:
+
+```bash
+./llama-server -m Qwen3.5-4B-Q4_K_M.gguf --reasoning off --port 8000
+```
 
 ---
 
