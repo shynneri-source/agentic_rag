@@ -1,32 +1,24 @@
-query_writer_instructions = """Your goal is to generate search queries for the RAG database. Always generate exactly 2 queries: one in English and one in Vietnamese. This ensures the best coverage across all indexed documents.
+query_writer_instructions = """Your goal is to generate search queries for the RAG database. Always generate exactly 2 queries: one in English and one in another relevant language that matches the user's question or document base. This ensures the best coverage across all indexed documents.
 
 Instructions:
-- Always generate exactly 2 queries: 1 in English, 1 in Vietnamese.
+- Always generate exactly 2 queries: 1 in English, 1 in the language of the user's question (if English, both can be English).
 - The English query should capture the core concepts in English keywords.
-- The Vietnamese query should capture the same concepts in Vietnamese.
+- The second query should capture the same concepts in the user's language.
 - If this is the first search (rag_loop_count = 0), write broad/general queries.
 - If this is a follow-up search (rag_loop_count > 0), write more specific queries targeting identified knowledge gaps.
 
 Format:
 - Return JSON with exactly 2 keys:
    - "rationale": Brief explanation of why these queries are suitable
-   - "query": A list of exactly 2 search query strings [English, Vietnamese]
+   - "query": A list of exactly 2 search query strings [English, OtherLanguage]
 
 Example:
 
 Question: "What are the applications of Machine Learning in healthcare?"
 ```json
 {{
-    "rationale": "Generated one English and one Vietnamese query to cover documents in both languages about ML applications in healthcare.",
-    "query": ["Machine Learning applications healthcare diagnosis treatment", "Machine Learning ứng dụng y tế chẩn đoán điều trị"]
-}}
-```
-
-Question: "Blockchain là gì?"
-```json
-{{
-    "rationale": "The user asks about blockchain definition in Vietnamese, generating both English and Vietnamese queries for comprehensive search.",
-    "query": ["Blockchain definition how it works", "Blockchain định nghĩa cách hoạt động"]
+    "rationale": "Generated one English and one bilingual query to cover documents in both languages.",
+    "query": ["Machine Learning applications healthcare", "Machine Learning ứng dụng y tế"]
 }}
 ```
 
@@ -82,18 +74,18 @@ router_instructions = """You are an intelligent classifier. Your task: return EX
 "rag" = Questions that NEED to look up specialized documents, legal texts, specific events/figures from reports, or information only available in the document store.
 
 Examples of "chat":
-- "hello" / "xin chào" → chat
-- "what is your name" / "bạn tên gì" → chat
-- "thank you" / "cảm ơn" → chat
+- "hello" / greetings in any language → chat
+- "what is your name" → chat
+- "thank you" → chat
 - "clear" → chat (single word command)
-- "what is AI" / "AI là gì" → chat (general knowledge)
-- "what is blockchain" / "Blockchain là gì" → chat (general knowledge)
+- "what is AI" → chat (general knowledge)
+- "what is blockchain" → chat (general knowledge)
 
 Examples of "rag":
-- "When was Ho Chi Minh born" / "Hồ Chí Minh sinh năm bao nhiêu" → rag (specific historical info)
-- "Explain Decree 147" / "Trình bày về Nghị định 147" → rag (legal document)
-- "25th anniversary of summer volunteer campaign" → rag (specific event)
-- "Statistics about ..." / "Số liệu thống kê về ..." → rag
+- "What was the GDP growth in Q3 2024?" → rag (specific data)
+- "Explain Article 14 of the constitution" → rag (legal document)
+- "When was the company founded?" → rag (specific historical info)
+- "Statistics about renewable energy adoption" → rag
 
 IMPORTANT: When in doubt, prefer "chat".
 
@@ -104,7 +96,7 @@ chat_instructions = """You are a friendly AI assistant. Answer the user's questi
 
 You do NOT need to look up documents for this question.
 
-IMPORTANT: Always respond in the SAME language as the user's question. If they ask in English, answer in English. If they ask in Vietnamese, answer in Vietnamese.
+IMPORTANT: Always respond in the SAME language as the user's question.
 
 Question: {question}"""
 
@@ -120,7 +112,7 @@ Instructions:
 - Ensure the answer is direct and complete.
 - Only use information present in the document content — do not fabricate information.
 - IMPORTANT: If the documents are NOT RELEVANT to the question or do NOT CONTAIN an answer, state that no relevant information was found. Do NOT fabricate. Do NOT attribute unrelated document content to the answer.
-- IMPORTANT: Always respond in the SAME language as the user's question. If the user asks in English, answer in English. If they ask in Vietnamese, answer in Vietnamese.
+- IMPORTANT: Always respond in the SAME language as the user's question.
 
 Output format:
 - Return JSON with exactly these keys:

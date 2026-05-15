@@ -37,7 +37,7 @@ class DocumentChunker:
         self.chunk_overlap = chunk_overlap
         self.output_file = output_file
         
-        # Default separators optimized for Vietnamese text
+        # Default separators for text splitting
         self.separators = separators or [
             "\n\n",  # Double newline (paragraphs)
             "\n",    # Single newline
@@ -303,10 +303,10 @@ def main():
             print(f"{key}: {value}")
     
     # Example: Search for specific content
-    print("\nSearching for 'Hồ Chí Minh':")
-    matching_chunks = chunker.search_chunks("Hồ Chí Minh")
-    print(f"Found {len(matching_chunks)} chunks containing 'Hồ Chí Minh'")
-    
+    print("\nSearching for example term:")
+    matching_chunks = chunker.search_chunks("example")
+    print(f"Found {len(matching_chunks)} chunks containing 'example'")
+
     if matching_chunks:
         print(f"First match preview: {matching_chunks[0]['content'][:200]}...")
 

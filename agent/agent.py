@@ -134,8 +134,8 @@ def rag_research(state: rag_query_state, config: RunnableConfig) -> OverallState
     for i, doc in enumerate(relevant_docs):
         content = doc["content"]
         content = re.sub(
-            r'Nội dung:\s*(\d{2}:\d{2})\s+(\d{2}/\d{2}/\d{4})(\d+)',
-            r'Published: \2 - Time: \1 | Content:',
+            r'(\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2})',
+            r'Date: \1 Time: \2',
             content
         )
         raw_contents.append(f"[Source {i+1}]: {content}")

@@ -126,7 +126,7 @@ Process multiple questions from a JSON file:
 uv run python process_questions.py
 ```
 
-Input: `datatest/test.json` (array of objects with `cau_hoi` field)
+Input: `datatest/test.json` (array of question objects)
 Output: `agent_results.json`, `agent_results_intermediate.json`
 
 ### 4d. Direct RAG Test (bypasses agent)

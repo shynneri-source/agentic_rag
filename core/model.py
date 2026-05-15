@@ -115,101 +115,70 @@ class ModelManager:
         collection_name: str = "document_embeddings",
         max_contexts: int = 3,
         score_threshold: float = 0.5,
-        language: str = "vietnamese"
     ) -> Dict[str, Any]:
         """
         Generate response using RAG (Retrieval-Augmented Generation)
-        
+
         Args:
             question (str): User's question
             collection_name (str): Qdrant collection name
             max_contexts (int): Maximum number of context chunks to use
             score_threshold (float): Minimum similarity score for retrieval
-            language (str): Response language preference
-            
+
         Returns:
             Dict[str, Any]: Response with answer and sources
         """
         try:
-            # Step 1: Retrieve relevant documents and prepare context in parallel
             relevant_docs = self.search_similar_documents(
                 query=question,
                 collection_name=collection_name,
                 limit=max_contexts,
                 score_threshold=score_threshold
             )
-            
+
             if not relevant_docs:
                 return {
-                    "answer": "Xin lỗi, tôi không tìm thấy thông tin liên quan đến câu hỏi của bạn trong cơ sở dữ liệu.",
+                    "answer": "Sorry, no relevant information was found in the database.",
                     "sources": [],
                     "confidence": 0.0
                 }
-            
-            # Efficient parallel processing of context and sources
+
             context_parts = []
             sources = []
-            
-            # Process documents once for both context and sources
+
             for i, doc in enumerate(relevant_docs):
-                context_parts.append(f"[Nguồn {i+1}]: {doc['content']}")
+                context_parts.append(f"[Source {i+1}]: {doc['content']}")
                 sources.append({
                     "filename": doc["filename"],
                     "source": doc["source"],
                     "confidence": doc["score"],
                     "chunk_id": doc["chunk_id"]
                 })
-            
-            # Join contexts with minimal formatting
+
             context = "\n".join(context_parts)
-            
-            # Step 3: Create optimized prompt for LLM
-            if language.lower() == "vietnamese":
-                system_prompt = """/nothink Bạn là AI assistant. Trả lời câu hỏi dựa trên thông tin được cung cấp.
-Quy tắc:
-1. Chỉ dùng thông tin từ nguồn
-2. Trả lời ngắn gọn, đủ ý
-3. Dùng [Nguồn X] để dẫn nguồn"""
-                
-                user_prompt = f"""Dựa trên thông tin sau đây:
 
-{context}
+            system_prompt = "You are an AI assistant. Answer questions based on provided information.\nRules:\n1. Use only source information\n2. Be concise but complete\n3. Use [Source X] for citations"
+            user_prompt = f"Context: {context}\nQuestion: {question}\nAnswer concisely using the context."
 
-Câu hỏi: {question}
-
-Hãy trả lời câu hỏi một cách chính xác và chi tiết."""
-            else:
-                system_prompt = """/nothink You are an AI assistant. Answer questions based on provided information.
-Rules:
-1. Use only source information
-2. Be concise but complete
-3. Use [Source X] for citations"""
-                
-                user_prompt = f"""Context: {context}
-Question: {question}
-Answer concisely using the context."""
-            
-            # Step 4: Generate response using LLM
             messages = [
                 SystemMessage(content=system_prompt),
                 HumanMessage(content=user_prompt)
             ]
-            
+
             response = self.llm.invoke(messages)
-            
-            # Calculate average confidence from sources
+
             avg_confidence = sum(doc["score"] for doc in relevant_docs) / len(relevant_docs)
-            
+
             return {
                 "answer": response.content,
                 "sources": sources,
                 "confidence": avg_confidence,
                 "context_used": len(relevant_docs)
             }
-            
+
         except Exception as e:
             return {
-                "answer": f"Xin lỗi, đã có lỗi xảy ra khi xử lý câu hỏi: {str(e)}",
+                "answer": f"Sorry, an error occurred while processing your question: {str(e)}",
                 "sources": [],
                 "confidence": 0.0
             }

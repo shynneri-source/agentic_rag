@@ -367,7 +367,7 @@ def main():
     print("\n" + "="*50)
     print("Example Search:")
     results = embedding_manager.search_similar_chunks(
-        query="Bắc Giang thanh niên tình nguyện",
+        query="example search query",
         limit=3,
         score_threshold=0.5
     )

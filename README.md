@@ -1,13 +1,13 @@
-# Agentic RAG
+# Shyn AI
 
-An **intelligent Retrieval-Augmented Generation (RAG)** system powered by a LangGraph-based agent that iteratively searches, evaluates, and synthesizes information from a Vietnamese document knowledge base. Built with local LLMs and vector search.
+An **intelligent Retrieval-Augmented Generation (RAG)** system powered by a LangGraph-based agent that iteratively searches, evaluates, and synthesizes information from a document knowledge base. Built with local LLMs and vector search.
 
 ---
 
 ## Key Features
 
 - **Agentic RAG Loop** — Autonomous multi-round search with self-evaluation and adaptive query refinement
-- **Vietnamese-Optimized** — Document chunking, stop word filtering, and prompts designed for Vietnamese text
+- **Bilingual Queries** — Always generates 1 English + 1 user-language query for best document coverage
 - **Real-Time Streaming** — SSE-based streaming UI showing each agent step (query generation, search, reflection, answer)
 - **Smart Intent Routing** — LLM-based router distinguishes between document queries and general conversation
 - **Local-First** — All models run locally via llama.cpp + Qdrant; no cloud dependencies
@@ -56,7 +56,7 @@ flowchart TD
 - Python 3.14+
 - [Qdrant](https://qdrant.tech/) running on `localhost:6333`
 - llama.cpp server (or compatible OpenAI-API endpoint) serving a GGUF model
-- Document files in `documents/` directory
+- Documents to index (place in a folder, default: `documents/`)
 
 ---
 
@@ -132,7 +132,7 @@ Standard request-response chat:
 
 ```json
 {
-  "message": "Question",
+  "message": "Your question here",
   "config": {}
 }
 ```
@@ -144,7 +144,7 @@ SSE-streamed chat with real-time agent progress. Events:
 | Event | Description |
 |---|---|
 | `thinking` | Agent initializing and analyzing question |
-| `query_generation` | Generated search queries (1 EN + 1 VI) |
+| `query_generation` | Generated search queries (1 EN + 1 user language) |
 | `rag_search` | Search query + results count |
 | `reflection` | Evaluation status + knowledge gap |
 | `answer` | Final answer text with sources |
@@ -164,7 +164,7 @@ agentic-rag/
 ├── agent/                      # LangGraph agent
 │   ├── agent.py                # Graph definition & nodes
 │   ├── config.py               # Configuration schema
-│   ├── prompt.py               # All prompt templates (English, bilingual queries)
+│   ├── prompt.py               # All prompt templates
 │   ├── schema.py               # Pydantic models
 │   ├── states.py               # TypedDict state definitions
 │   └── utils.py                # Helper functions
@@ -173,8 +173,7 @@ agentic-rag/
 ├── rag/
 │   ├── documents_processing.py # Document chunking pipeline
 │   └── documents_embedding.py  # Embedding generation & Qdrant upsert
-├── documents/
-│   └── data.txt                # Source documents
+├── documents/                  # Place your source documents here
 ├── app.py                      # FastAPI server + SSE streaming
 ├── example.py                  # CLI interactive agent
 ├── process_questions.py        # Batch question processor
@@ -191,7 +190,7 @@ agentic-rag/
 
 1. **Router**: Classifies the user's question as needing document search (`rag`) or general conversation (`chat`).
 
-2. **Query Generation**: For RAG questions, the LLM generates 1–2 diverse search queries optimized for vector retrieval.
+2. **Query Generation**: For RAG questions, the LLM generates 2 search queries (1 English + 1 in the user's language) optimized for vector retrieval.
 
 3. **Parallel Search**: Each query searches Qdrant's vector database. The top result is returned as raw document content (not LLM-summarized).
 

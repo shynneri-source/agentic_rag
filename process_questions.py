@@ -7,30 +7,32 @@ from agent.config import Configuration
 def load_questions(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    return [item['cau_hoi'] for item in data]
+    if isinstance(data, list):
+        if isinstance(data[0], dict):
+            return [list(item.values())[0] for item in data]
+        return data
+    return []
 
 def process_questions(questions):
     results = []
     total = len(questions)
-    
-    # Cấu hình mặc định cho agent
+
     default_config = {
         "query_generator_model": "Qwen3.5-4B-Q4_K_M.gguf",
-        "reflection_model": "Qwen3.5-4B-Q4_K_M.gguf", 
+        "reflection_model": "Qwen3.5-4B-Q4_K_M.gguf",
         "rag_model": "Qwen3.5-4B-Q4_K_M.gguf",
         "answer_model": "Qwen3.5-4B-Q4_K_M.gguf",
         "max_rag_loops": 3,
         "number_of_initial_queries": 2
     }
-    
+
     config = {"configurable": default_config}
-    
+
     for idx, question in enumerate(questions, 1):
         print(f"\nProcessing question {idx}/{total}")
         print(f"Question: {question}")
-        
+
         try:
-            # Khởi tạo state ban đầu cho câu hỏi
             initial_state = {
                 "user_messages": [HumanMessage(content=question)],
                 "rag_query": [],
@@ -41,42 +43,38 @@ def process_questions(questions):
                 "intent": "",
                 "router_reason": "",
             }
-            
-            # Chạy agent graph với state ban đầu
+
             final_state = graph.invoke(initial_state, config=config)
-            
-            # Lấy câu trả lời từ user_messages cuối cùng
-            response_content = "Không có câu trả lời"
+
+            response_content = "No answer available"
             if "user_messages" in final_state and final_state["user_messages"]:
                 final_message = final_state["user_messages"][-1]
                 if hasattr(final_message, 'content'):
                     response_content = final_message.content
                 else:
                     response_content = str(final_message)
-            
+
             result = {
-                "cau_hoi": question,
-                "ket_qua_agent": response_content
+                "question": question,
+                "answer": response_content
             }
             results.append(result)
-            
-            # Save intermediate results after each question
+
             save_results(results, "agent_results_intermediate.json")
-            
+
             print(f"Answer: {response_content}\n")
             print("-" * 80)
-            
+
         except Exception as e:
             print(f"Error processing question: {str(e)}")
             result = {
-                "cau_hoi": question,
-                "ket_qua_agent": f"Error: {str(e)}"
+                "question": question,
+                "answer": f"Error: {str(e)}"
             }
             results.append(result)
-            
-        # Add a small delay between questions to prevent overload
+
         time.sleep(2)
-    
+
     return results
 
 def save_results(results, output_file):
@@ -86,15 +84,15 @@ def save_results(results, output_file):
 if __name__ == "__main__":
     input_file = "datatest/test.json"
     output_file = "agent_results.json"
-    
-    print("Loading questions from test.json...")
+
+    print("Loading questions...")
     questions = load_questions(input_file)
     print(f"Loaded {len(questions)} questions")
-    
+
     print("\nStarting to process questions...")
     results = process_questions(questions)
-    
+
     print("\nSaving final results...")
     save_results(results, output_file)
-    
+
     print(f"\nComplete! Results saved to {output_file}")
