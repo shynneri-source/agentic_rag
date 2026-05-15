@@ -2,16 +2,18 @@
 
 ## 1. System Overview
 
-This system implements an **Agentic Retrieval-Augmented Generation (RAG)** pipeline using a **LangGraph-based state machine** orchestrated by a local language model. The system processes user questions, determines intent, iteratively searches a vector database of documents, reflects on search results, and generates final answers.
+This system implements an **Agentic Retrieval-Augmented Generation (RAG)** pipeline using a **LangGraph-based state machine** orchestrated by a local language model. The system processes user questions, determines intent, iteratively searches a vector database of documents, reflects on search results, and generates final answers. It features persistent conversation storage and LLM-based long-term memory extraction for cross-session personalization.
 
 **Tech Stack:**
 - **Orchestration:** LangGraph (StateGraph with conditional edges + Send fan-out)
 - **LLM:** Qwen3.5-4B-Q4_K_M (quantized 4-bit) served via llama.cpp server (OpenAI-compatible API, configurable via `LLM_BASE_URL` in `.env`)
 - **Embeddings:** `Qwen/Qwen3-Embedding-0.6B` (SentenceTransformer, 1024-dim)
-- **Vector DB:** Qdrant (local, port 6333, cosine distance)
+- **Vector DB:** Qdrant (local, port 6333, cosine distance) — used for both document and memory storage
 - **Chunking:** LangChain `RecursiveCharacterTextSplitter`
 - **API:** FastAPI with Server-Sent Events (SSE) streaming
 - **Frontend:** Single-page HTML chat interface
+- **Conversation Store:** SQLite (persistent, `data/conversations.db`)
+- **Memory Store:** Qdrant (separate `conversation_memories` collection, 1024-dim vectors)
 
 ---
 
@@ -156,11 +158,12 @@ START → [router] → conditional
 ### 3.2 State Types (TypedDict with Reducers)
 
 **`OverallState`:** Central state with LangGraph reducers:
-- `user_messages`: `Annotated[list, add_messages]` — accumulates chat history
+- `user_messages`: `Annotated[list, add_messages]` — accumulates chat history (including conversation history from SQLite)
 - `rag_query`: `Annotated[list, operator.add]` — all queries ever generated
 - `rag_query_result`: `Annotated[list, operator.add]` — all document contents retrieved
 - `source_gathered`: `Annotated[list, operator.add]` — all source filenames
-- Control fields: `intent`, `rag_loop_count`, `max_rag_loops`, `initial_rag_query_count`
+- `memories`: `str` — relevant long-term memories from past conversations, injected as context into prompts
+- Control fields: `intent`, `rag_loop_count`, `max_rag_loops`, `initial_rag_query_count`, `router_reason`
 
 **`QueryGenerationState`:** `rag_query: list[Query]` — queries from generate_query
 
@@ -176,9 +179,115 @@ This pattern repeats in the reflection loop — each `follow_up_queries` list fa
 
 ---
 
-## 4. Streaming Architecture (app.py)
+## 4. Memory & History System
 
-The FastAPI `/api/chat/stream` endpoint uses **Server-Sent Events (SSE)** to stream agent progress in real-time.
+The system implements a dual-store architecture for persistent conversation state: a **relational store** for conversation history and a **vector store** for long-term semantic memories.
+
+### 4.1 Conversation Store (SQLite)
+
+**Module:** `store/conversation_store.py` — `ConversationStore` class
+
+**What:** Persistent SQLite-backed storage for conversations and messages. Each conversation belongs to a session (identified by `session_id`).
+
+**Schema:**
+
+```
+conversations
+├── id            TEXT PRIMARY KEY   (UUID v4)
+├── session_id    TEXT NOT NULL      (client-provided or auto-generated)
+├── title         TEXT DEFAULT 'New conversation'
+├── created_at    TEXT               (ISO 8601)
+└── updated_at    TEXT               (ISO 8601)
+
+messages
+├── id                INTEGER PRIMARY KEY AUTOINCREMENT
+├── conversation_id   TEXT NOT NULL   (FK → conversations.id, CASCADE)
+├── role              TEXT            ('user', 'assistant', 'system')
+├── content           TEXT NOT NULL
+├── sources           TEXT DEFAULT '[]'  (JSON array of source filenames)
+├── stats             TEXT DEFAULT '{}'  (JSON dict: loop_count, total_queries, etc.)
+└── timestamp         TEXT               (ISO 8601)
+```
+
+**Key operations:**
+- `get_or_create_session_id()` — returns provided ID or generates a new UUID
+- `create_conversation()` — creates conversation, auto-titles from first message (truncated to 80 chars)
+- `get_conversation()` / `list_conversations()` — retrieval by ID or session
+- `add_message()` — appends a message, updates conversation `updated_at`
+- `get_messages()` — paginated retrieval (oldest first)
+- `get_recent_messages(count=10)` — last N messages for context window injection
+- `delete_conversation()` / `delete_all_conversations()` — cascading delete of messages
+
+**How history is injected into the agent:**
+
+In `app.py:_build_initial_state()`, recent messages from SQLite are loaded via `get_recent_messages()` and converted to `HumanMessage`/`AIMessage` objects. These are prepended to `user_messages` in `OverallState`, giving the LangGraph agent access to conversation history. The `agent/utils.py:get_research_topic()` function formats this history with `<conversation_history>`, `<last_exchange>`, and `<current_question>` XML tags for prompt injection.
+
+### 4.2 Memory Store (Qdrant-backed)
+
+**Module:** `store/memory_store.py` — `MemoryStore` class
+
+**What:** Long-term vector storage for extracted conversation memories. Each memory is an embedded fact stored in a dedicated Qdrant collection (`conversation_memories`), enabling semantic retrieval across sessions.
+
+**Collection:** `conversation_memories`
+- **Vector size:** 1024 (Qwen3-Embedding-0.6B)
+- **Distance:** Cosine
+- **Payload:** `memory_id`, `session_id`, `conversation_id`, `content`, `memory_type`, `source_message_ids`, `created_at`
+
+**Key operations:**
+- `store_memory()` — embeds content via `core.model.generate_embeddings()`, upserts into Qdrant
+- `search_memories()` — semantic search with optional `session_id` filter, `score_threshold=0.3`, `limit=10`
+- `find_similar_memories()` — high-threshold (0.92) deduplication check before storing
+- `list_memories()` — scroll-based listing, deduplicated and sorted by `created_at DESC`
+- `delete_conversation_memories()` / `delete_session_memories()` — bulk cleanup
+- `deduplicate_by_content()` — static method for exact + substring deduplication
+
+**Memory injection flow:**
+
+```
+User sends message
+  → _load_relevant_memories() queries Qdrant with user's message as embedding
+  → Results deduplicated by content similarity
+  → Formatted as "Here are relevant memories from your past conversations:\n- ..."
+  → Passed into OverallState as `memories` string
+  → Every agent node (router, generate_query, reflection, finalize_answer, chat)
+    injects {memories} into its prompt via .format()
+```
+
+### 4.3 Memory Extraction (LLM-based)
+
+**Module:** `store/memory_extractor.py` — `MemoryExtractor` class
+
+**What:** After each conversation turn, the LLM analyzes the user message + assistant response to extract salient facts worth remembering across sessions. Uses structured output with a `MemoryExtraction` Pydantic schema.
+
+**Extraction criteria (selective — most exchanges return empty):**
+- **Personality:** Character traits, attitudes, values
+- **Communication style:** Formality, directness, preferred formats
+- **Hobbies & Interests:** Topics the user is passionate about
+- **Preferences:** Stated preferences about tools, languages, formats
+- **Goals & Projects:** What the user is working on
+- **Personal context:** Background, profession, location, skills
+
+**Do NOT extract:**
+- Greetings, pleasantries, thanks
+- Generic one-time queries ("what is X?")
+- Clarification questions
+- Single-word or very short exchanges
+
+**Filtering:**
+- Only memories with `importance >= 3` (1–5 scale) are stored
+- Max 3 memories per exchange
+- Deduplication against existing memories via `find_similar_memories()` (threshold 0.92)
+
+**Integration:** Extraction runs as an `asyncio.create_task()` background job in `app.py` after the response is sent, so it never blocks the user.
+
+### 4.4 Streaming Integration
+
+In the SSE streaming endpoint (`/api/chat/stream`):
+1. User message is stored in SQLite **before** agent execution
+2. Recent history and relevant memories are loaded and injected into the initial state
+3. On `chat` or `finalize_answer` events, the assistant response is stored in SQLite
+4. Memory extraction is triggered as a background asyncio task after each turn
+5. Error events are emitted if processing fails, ensuring the user always receives feedback
 
 ---
 
@@ -214,11 +323,14 @@ The FastAPI `/api/chat/stream` endpoint uses **Server-Sent Events (SSE)** to str
 
 | Prompt | Technique | Purpose |
 |---|---|---|
-| `router_instructions` | Zero-shot classification + few-shot examples | Route between chat and RAG |
-| `query_writer_instructions` | Structured output (List[str]) + bilingual generation | Generate search queries |
+| `router_instructions` | Zero-shot classification + few-shot examples + memory injection | Route between chat and RAG |
+| `query_writer_instructions` | Structured output (List[str]) + bilingual generation + memory injection | Generate search queries |
 | `reflection_instructions` | Structured output (Reflection schema) + anti-hallucination rules | Evaluate information sufficiency |
-| `answer_instructions` | Structured output (FinalAnswer schema) + citation requirement | Generate final answer |
-| `chat_instructions` | Personality prompt | Conversational response |
+| `answer_instructions` | Structured output (FinalAnswer schema) + citation requirement + memory injection | Generate final answer |
+| `chat_instructions` | Personality prompt + memory injection | Conversational response |
+| `MEMORY_EXTRACTION_PROMPT` | Structured output (MemoryExtraction schema) + selective extraction rules | Extract memorable facts from conversation turns |
+
+**Memory injection:** All prompts include a `{memories}` placeholder. When relevant memories exist, they are prepended as a block of bullet-pointed facts. When no memories exist, the placeholder resolves to an empty string, so prompts remain clean.
 
 **Note on reasoning control:** Reasoning is disabled via llama.cpp server's `--reasoning off` parameter rather than inline prompt directives. This keeps prompts clean and delegates inference control to the server configuration.
 
@@ -251,8 +363,12 @@ Defined in `agent/config.py` and overridable via `app.py`:
 | `reflection_model` | Qwen3.5-4B-Q4_K_M.gguf | Model for reflection/evaluation |
 | `rag_model` | Qwen3.5-4B-Q4_K_M.gguf | Model for RAG (unused in current impl) |
 | `answer_model` | Qwen3.5-4B-Q4_K_M.gguf | Model for final answer |
-| `max_rag_loops` | 3 | Max RAG evaluation cycles |
-| `number_of_initial_queries` | 2 | Initial queries per question |
+| `max_rag_loops` | 4 | Max RAG evaluation cycles |
+| `number_of_initial_queries` | 3 | Initial queries per question |
+
+**Data Storage:**
+- **Conversation DB:** `data/conversations.db` (SQLite, auto-created)
+- **Memory collection:** `conversation_memories` (Qdrant, auto-created)
 
 ---
 
@@ -262,3 +378,6 @@ Defined in `agent/config.py` and overridable via `app.py`:
 2. **Hallucination tendency:** The model sometimes invents information when given irrelevant context. Solutions: Keyword relevance filter + anti-hallucination prompts.
 3. **Single document retrieval:** `limit=1` trades recall for precision. Some questions might need multiple documents, compensated by multi-query rounds.
 4. **Static threshold:** The 0.35 score threshold is fixed; queries scoring below this return nothing even if the desired document exists.
+5. **Memory quality:** Memory extraction quality depends on the LLM's ability to identify genuinely salient facts. Small models may miss subtle personal context or extract overly generic statements.
+6. **Memory deduplication:** Deduplication relies on exact + substring matching in `MemoryStore.deduplicate_by_content()`. Semantically equivalent memories with different wording may be stored multiple times.
+7. **Conversation context window:** Only the last 10 messages are loaded for history context. Very long conversations may lose early context.

@@ -194,6 +194,196 @@
             white-space: nowrap;
         }
 
+        .sidebar-tabs {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .sidebar-tab {
+            padding: 6px 12px;
+            background: transparent;
+            color: #75758a;
+            border: 1px solid transparent;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Inter', Arial, ui-sans-serif, system-ui, sans-serif;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sidebar-tab:hover {
+            background: #f2f2f2;
+            color: #17171c;
+        }
+
+        .sidebar-tab.active {
+            background: #17171c;
+            color: #ffffff;
+            border-color: #17171c;
+        }
+
+        .sidebar-panel {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .memory-search-container {
+            display: flex;
+            gap: 8px;
+        }
+
+        .memory-search-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #d9d9dd;
+            border-radius: 30px;
+            font-size: 13px;
+            font-family: 'Inter', Arial, ui-sans-serif, system-ui, sans-serif;
+            outline: none;
+            transition: all 0.2s ease;
+            background: #ffffff;
+            color: #212121;
+        }
+
+        .memory-search-input::placeholder {
+            color: #93939f;
+        }
+
+        .memory-search-input:focus {
+            border-color: #4c6ee6;
+            box-shadow: 0 0 0 2px rgba(76, 110, 230, 0.2);
+        }
+
+        .memory-search-btn {
+            padding: 10px 14px;
+            background: #17171c;
+            color: #ffffff;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .memory-search-btn:hover {
+            background: #000000;
+        }
+
+        .memory-item {
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+        .memory-item:hover {
+            background: #f2f2f2;
+            border-color: #d9d9dd;
+        }
+
+        .memory-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 6px;
+        }
+
+        .memory-type-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 30px;
+            background: #f2f2f2;
+            color: #75758a;
+            text-transform: uppercase;
+            letter-spacing: 0.28px;
+            font-weight: 500;
+        }
+
+        .memory-type-badge.preference {
+            background: #fef3e2;
+            color: #a36a00;
+        }
+
+        .memory-type-badge.fact {
+            background: #e8f4f8;
+            color: #005f73;
+        }
+
+        .memory-type-badge.context {
+            background: #f0e6ff;
+            color: #581c87;
+        }
+
+        .memory-type-badge.interest {
+            background: #fce4ec;
+            color: #880e3f;
+        }
+
+        .memory-type-badge.decision {
+            background: #e6f7e6;
+            color: #1b5e20;
+        }
+
+        .memory-type-badge.personality {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .memory-type-badge.communication_style {
+            background: #e3f2fd;
+            color: #01579b;
+        }
+
+        .memory-type-badge.hobby {
+            background: #fce4ec;
+            color: #880e3f;
+        }
+
+        .memory-type-badge.goal {
+            background: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        .memory-item-content {
+            font-size: 13px;
+            color: #212121;
+            line-height: 1.4;
+            margin-bottom: 6px;
+        }
+
+        .memory-item-date {
+            font-size: 11px;
+            color: #93939f;
+        }
+
+        .memory-delete-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            color: #93939f;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .memory-delete-btn:hover {
+            background: #fee2e2;
+            color: #b30000;
+        }
+
         .sidebar-overlay {
             position: fixed;
             top: 0;
@@ -875,24 +1065,54 @@
 
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <span class="sidebar-title">History</span>
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" onclick="switchSidebarTab('history')" id="tab-history">
+                    <i class="fas fa-history"></i> History
+                </button>
+                <button class="sidebar-tab" onclick="switchSidebarTab('memories')" id="tab-memories">
+                    <i class="fas fa-brain"></i> Memories
+                </button>
+            </div>
             <button class="close-sidebar" onclick="toggleSidebar()">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
-        <div class="sidebar-actions">
-            <button class="new-chat-button" onclick="startNewChat()">
-                <i class="fas fa-plus"></i>
-                New chat
-            </button>
-            <button class="clear-all-button" onclick="clearAllChats()">
-                <i class="fas fa-trash-alt"></i>
-                Clear history
-            </button>
+        <!-- History tab content -->
+        <div id="sidebar-history" class="sidebar-panel">
+            <div class="sidebar-actions">
+                <button class="new-chat-button" onclick="startNewChat()">
+                    <i class="fas fa-plus"></i>
+                    New chat
+                </button>
+                <button class="clear-all-button" onclick="clearAllChats()">
+                    <i class="fas fa-trash-alt"></i>
+                    Clear history
+                </button>
+            </div>
+            <div class="sidebar-content" id="chatHistory">
+            </div>
         </div>
 
-        <div class="sidebar-content" id="chatHistory">
+        <!-- Memories tab content -->
+        <div id="sidebar-memories" class="sidebar-panel" style="display:none;">
+            <div class="sidebar-actions">
+                <div class="memory-search-container">
+                    <input type="text" class="memory-search-input" id="memorySearchInput" placeholder="Search memories..." onkeydown="if(event.key==='Enter')searchMemories()">
+                    <button class="memory-search-btn" onclick="searchMemories()">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <button class="clear-all-button" onclick="clearAllMemories()">
+                    <i class="fas fa-trash-alt"></i>
+                    Clear memories
+                </button>
+            </div>
+            <div class="sidebar-content" id="memoryList">
+                <div style="color: #93939f; text-align: center; padding: 24px; font-size: 14px;">
+                    Loading memories...
+                </div>
+            </div>
         </div>
     </div>
 
@@ -963,13 +1183,115 @@
     </div>
 
     <script>
+        // --- Session & State Management ---
         let isLoading = false;
         let streamMode = true;
         let messagesContainer = document.getElementById('messages');
         let messageInput = document.getElementById('messageInput');
         let sendButton = document.getElementById('sendButton');
         let currentStreamContainer = null;
-        let chatSessions = [];
+
+        // Session & conversation tracking
+        let sessionId = localStorage.getItem('sessionId');
+        if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            localStorage.setItem('sessionId', sessionId);
+        }
+        let currentConversationId = null;
+
+        // --- Sidebar Tab Switching ---
+
+        function switchSidebarTab(tab) {
+            document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+            document.getElementById('tab-memories').classList.toggle('active', tab === 'memories');
+            document.getElementById('sidebar-history').style.display = tab === 'history' ? '' : 'none';
+            document.getElementById('sidebar-memories').style.display = tab === 'memories' ? '' : 'none';
+            if (tab === 'memories') {
+                loadMemories();
+            } else if (tab === 'history') {
+                loadConversationList();
+            }
+        }
+
+        // --- Memory Management ---
+
+        async function loadMemories(query) {
+            const memoryList = document.getElementById('memoryList');
+            memoryList.innerHTML = '<div style="color: #93939f; text-align: center; padding: 24px; font-size: 14px;"><div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div></div>';
+
+            try {
+                let url = `/api/memories?session_id=${encodeURIComponent(sessionId)}`;
+                if (query) {
+                    url = `/api/memories/search?session_id=${encodeURIComponent(sessionId)}&query=${encodeURIComponent(query)}`;
+                }
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!data.memories || data.memories.length === 0) {
+                    memoryList.innerHTML = '<div style="color: #93939f; text-align: center; padding: 24px; font-size: 14px;">No memories yet. Memories are automatically extracted from your conversations.</div>';
+                    return;
+                }
+
+                memoryList.innerHTML = '';
+                data.memories.forEach(memory => {
+                    const memoryItem = document.createElement('div');
+                    memoryItem.className = 'memory-item';
+
+                    const typeClass = memory.memory_type || 'fact';
+                    const date = new Date(memory.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                    memoryItem.innerHTML = `
+                        <div class="memory-item-header">
+                            <span class="memory-type-badge ${typeClass}">${escapeHtml(typeClass)}</span>
+                            <button class="memory-delete-btn" onclick="deleteMemory('${memory.memory_id}')" title="Delete memory">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="memory-item-content">${escapeHtml(memory.content)}</div>
+                        <div class="memory-item-date">${date}</div>
+                    `;
+                    memoryList.appendChild(memoryItem);
+                });
+
+                // Update memory search input to show count
+                const searchInput = document.getElementById('memorySearchInput');
+                if (!query) {
+                    searchInput.placeholder = `Search ${data.memories.length} memories...`;
+                }
+            } catch (error) {
+                console.error('Error loading memories:', error);
+                memoryList.innerHTML = '<div style="color: #b30000; text-align: center; padding: 24px; font-size: 14px;">Error loading memories. Make sure Qdrant is running.</div>';
+            }
+        }
+
+        async function searchMemories() {
+            const query = document.getElementById('memorySearchInput').value.trim();
+            loadMemories(query || undefined);
+        }
+
+        async function deleteMemory(memoryId) {
+            try {
+                const response = await fetch(`/api/memories/${encodeURIComponent(memoryId)}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadMemories();
+                }
+            } catch (error) {
+                console.error('Error deleting memory:', error);
+            }
+        }
+
+        async function clearAllMemories() {
+            if (!confirm('Are you sure? This will delete all your stored memories.')) return;
+            try {
+                const response = await fetch(`/api/memories?session_id=${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+                const data = await response.json();
+                loadMemories();
+            } catch (error) {
+                console.error('Error clearing memories:', error);
+            }
+        }
+
+        // --- Sidebar ---
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -977,7 +1299,7 @@
             sidebar.classList.toggle('open');
             overlay.classList.toggle('show');
             if (sidebar.classList.contains('open')) {
-                loadChatSessions();
+                loadConversationList();
             }
         }
 
@@ -988,68 +1310,80 @@
             sendMessage();
         }
 
-        function startNewChat() {
-            const messages = messagesContainer.children;
-            if (messages.length > 1) {
-                saveChatSession();
+        // --- Conversation Management ---
+
+        async function startNewChat() {
+            // Save current conversation messages if any exist
+            if (currentConversationId) {
+                const msgElements = messagesContainer.querySelectorAll('.message');
+                // No need to save — messages are persisted server-side
             }
+            currentConversationId = null;
             clearChatSilently();
-            toggleSidebar();
-        }
-
-        function saveChatSession() {
-            const messages = [];
-            const messageElements = messagesContainer.querySelectorAll('.message');
-            messageElements.forEach(msgEl => {
-                const role = msgEl.classList.contains('user') ? 'user' : 'assistant';
-                const textEl = msgEl.querySelector('.message-text');
-                if (!textEl) return;
-                const content = textEl.innerText;
-                messages.push({ role, content, timestamp: new Date().toISOString() });
-            });
-            if (messages.length > 0) {
-                const session = {
-                    id: Date.now(),
-                    title: messages[0].content.substring(0, 50) + (messages[0].content.length > 50 ? '...' : ''),
-                    messages: messages,
-                    createdAt: new Date().toISOString()
-                };
-                chatSessions.unshift(session);
-                localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+            // Close sidebar if open
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('open')) {
+                toggleSidebar();
             }
         }
 
-        function loadChatSessions() {
-            const saved = localStorage.getItem('chatSessions');
-            if (saved) {
-                chatSessions = JSON.parse(saved);
+        async function loadConversationList() {
+            try {
+                const response = await fetch(`/api/chat/sessions?session_id=${encodeURIComponent(sessionId)}`);
+                const data = await response.json();
+                const chatHistoryContainer = document.getElementById('chatHistory');
+
+                if (!data.conversations || data.conversations.length === 0) {
+                    chatHistoryContainer.innerHTML = '<div style="color: #93939f; text-align: center; padding: 24px; font-size: 14px;">No chat history yet</div>';
+                    return;
+                }
+
+                chatHistoryContainer.innerHTML = '';
+                data.conversations.forEach(conv => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'chat-history-item';
+                    if (conv.id === currentConversationId) {
+                        historyItem.classList.add('active');
+                    }
+                    historyItem.onclick = () => loadConversation(conv.id);
+
+                    const date = new Date(conv.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const time = new Date(conv.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                    let preview = conv.title || 'Untitled';
+                    if (conv.message_count) {
+                        preview += ` (${conv.message_count} msgs)`;
+                    }
+
+                    historyItem.innerHTML = `
+                        <div class="chat-history-date">${date} · ${time}</div>
+                        <div class="chat-history-preview">${escapeHtml(preview)}</div>
+                    `;
+                    chatHistoryContainer.appendChild(historyItem);
+                });
+            } catch (error) {
+                console.error('Error loading conversations:', error);
             }
-            const chatHistoryContainer = document.getElementById('chatHistory');
-            if (chatSessions.length === 0) {
-                chatHistoryContainer.innerHTML = '<div style="color: #93939f; text-align: center; padding: 24px; font-size: 14px;">No chat history yet</div>';
-                return;
-            }
-            chatHistoryContainer.innerHTML = '';
-            chatSessions.forEach(session => {
-                const historyItem = document.createElement('div');
-                historyItem.className = 'chat-history-item';
-                historyItem.onclick = () => loadChatSession(session);
-                const date = new Date(session.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                const time = new Date(session.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                historyItem.innerHTML = `
-                    <div class="chat-history-date">${date} · ${time}</div>
-                    <div class="chat-history-preview">${session.title}</div>
-                `;
-                chatHistoryContainer.appendChild(historyItem);
-            });
         }
 
-        function loadChatSession(session) {
-            clearChatSilently();
-            session.messages.forEach(msg => {
-                addMessage(msg.role, msg.content, [], {});
-            });
-            toggleSidebar();
+        async function loadConversation(conversationId) {
+            try {
+                const response = await fetch(`/api/chat/history?conversation_id=${encodeURIComponent(conversationId)}`);
+                const data = await response.json();
+
+                if (!data.messages) return;
+
+                clearChatSilently();
+                currentConversationId = conversationId;
+
+                data.messages.forEach(msg => {
+                    addMessage(msg.role, msg.content, msg.sources || [], msg.stats || {});
+                });
+
+                toggleSidebar();
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+            }
         }
 
         function clearChatSilently() {
@@ -1070,18 +1404,23 @@
             `;
         }
 
-        function clearAllChats() {
+        async function clearAllChats() {
             if (!confirm('Are you sure? This action cannot be undone.')) return;
             try {
-                chatSessions = [];
-                localStorage.removeItem('chatSessions');
+                const response = await fetch(`/api/chat/history?session_id=${encodeURIComponent(sessionId)}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                currentConversationId = null;
                 clearChatSilently();
-                loadChatSessions();
+                loadConversationList();
                 toggleSidebar();
             } catch (error) {
                 console.error('Error clearing history:', error);
             }
         }
+
+        // --- Input Handling ---
 
         messageInput.addEventListener('input', function() {
             this.style.height = 'auto';
@@ -1108,47 +1447,45 @@
             }
         }
 
+        // --- Message Sending ---
+
         async function sendMessage() {
             const message = messageInput.value.trim();
             if (!message || isLoading) return;
 
+            // Remove empty state
             const emptyState = messagesContainer.querySelector('.empty-state');
             if (emptyState) {
                 emptyState.remove();
             }
 
             addMessage('user', message);
-
             messageInput.value = '';
             messageInput.style.height = 'auto';
 
-            if (streamMode) {
-                await sendStreamMessage(message);
-            } else {
-                await sendRegularMessage(message);
-            }
+            // Build request body with session tracking
+            const requestBody = {
+                message: message,
+                session_id: sessionId,
+                conversation_id: currentConversationId,
+                config: {}
+            };
 
-            setTimeout(() => {
-                const messageElements = messagesContainer.querySelectorAll('.message');
-                if (messageElements.length >= 2) {
-                    saveChatSession();
-                }
-            }, 1000);
+            if (streamMode) {
+                await sendStreamMessage(requestBody);
+            } else {
+                await sendRegularMessage(requestBody);
+            }
         }
 
-        async function sendStreamMessage(message) {
+        async function sendStreamMessage(requestBody) {
             showStreamLoading();
 
             try {
                 const response = await fetch('/api/chat/stream', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        config: {}
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {
@@ -1183,19 +1520,14 @@
             }
         }
 
-        async function sendRegularMessage(message) {
+        async function sendRegularMessage(requestBody) {
             showLoading();
 
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        config: {}
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
@@ -1203,6 +1535,9 @@
                 if (!response.ok) {
                     throw new Error(data.detail || 'An error occurred');
                 }
+
+                // Store the conversation ID from the response
+                currentConversationId = data.conversation_id;
 
                 hideLoading();
                 addMessage('assistant', data.response, data.sources, data.stats);
@@ -1213,7 +1548,14 @@
             }
         }
 
+        // --- Stream Event Handling ---
+
         function handleStreamMessage(data) {
+            // Capture conversation_id from thinking event
+            if (data.type === 'thinking' && data.data && data.data.conversation_id) {
+                currentConversationId = data.data.conversation_id;
+            }
+
             if (data.type === 'thinking') {
                 showStreamStep('thinking', 'Thinking', data.content, data.data);
             } else if (data.type === 'query_generation') {
@@ -1223,6 +1565,10 @@
             } else if (data.type === 'reflection') {
                 showStreamStep('reflection', 'Reflecting', data.content, data.data);
             } else if (data.type === 'answer') {
+                // Capture conversation_id from answer event too
+                if (data.data && data.data.conversation_id) {
+                    currentConversationId = data.data.conversation_id;
+                }
                 hideStreamLoading();
                 addMessage('assistant', data.content, data.data.sources || [], data.data.stats || {});
             } else if (data.type === 'complete') {
@@ -1232,6 +1578,8 @@
                 addMessage('assistant', data.content, [], {});
             }
         }
+
+        // --- Stream UI ---
 
         function showStreamStep(type, title, content, data) {
             if (!currentStreamContainer) return;
@@ -1350,6 +1698,8 @@
             currentStreamContainer = null;
         }
 
+        // --- Message Rendering ---
+
         function addMessage(role, content, sources = [], stats = {}) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
@@ -1371,7 +1721,7 @@
                     messageText.innerHTML = content.replace(/\n/g, '<br>');
                 }
             } else {
-                messageText.innerHTML = content.replace(/\n/g, '<br>');
+                messageText.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
             }
 
             messageContent.appendChild(messageText);
@@ -1380,7 +1730,7 @@
                 const sourcesDiv = document.createElement('div');
                 sourcesDiv.className = 'message-sources';
                 sourcesDiv.innerHTML = '<strong style="font-size:12px;color:#93939f;">Sources:</strong> ' +
-                    sources.map(source => `<span class="source-tag">${source}</span>`).join('');
+                    sources.map(source => `<span class="source-tag">${escapeHtml(source)}</span>`).join('');
                 messageContent.appendChild(sourcesDiv);
             }
 
@@ -1441,27 +1791,20 @@
             }
         }
 
-        async function loadChatHistory() {
-            try {
-                const response = await fetch('/api/chat/history');
-                const data = await response.json();
+        // --- Utility ---
 
-                if (data.messages && data.messages.length > 0) {
-                    const emptyState = messagesContainer.querySelector('.empty-state');
-                    if (emptyState) {
-                        emptyState.remove();
-                    }
-
-                    data.messages.forEach(msg => {
-                        addMessage(msg.role, msg.content, msg.sources || [], msg.stats || {});
-                    });
-                }
-            } catch (error) {
-                console.error('Error loading chat history:', error);
-            }
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
-        window.addEventListener('load', loadChatHistory);
+        // --- Initialization ---
+
+        // No need to load old history on startup — conversations are loaded on demand
+        // via the sidebar. The "on load loadChatHistory()" call is replaced by nothing.
+        // Keep the frontend clean — start with empty state.
+        console.log('Shyn AI initialized. Session ID:', sessionId);
     </script>
 </body>
 </html>

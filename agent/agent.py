@@ -24,7 +24,8 @@ from typing import Literal
 def router_node(state: OverallState, config: RunnableConfig) -> dict:
     llm = get_llm()
     question = get_research_topic(state["user_messages"])
-    response = llm.invoke(router_instructions.format(question=question))
+    memories = state.get("memories", "")
+    response = llm.invoke(router_instructions.format(question=question, memories=memories))
     content = response.content.strip().lower()
     intent = "rag" if "rag" in content else "chat"
     return {"intent": intent, "router_reason": content[:200]}
@@ -37,7 +38,8 @@ def route_decision(state: OverallState) -> Literal["chat", "generate_query"]:
 def chat_node(state: OverallState, config: RunnableConfig) -> OverallState:
     llm = get_llm()
     question = get_research_topic(state["user_messages"])
-    response = llm.invoke(chat_instructions.format(question=question))
+    memories = state.get("memories", "")
+    response = llm.invoke(chat_instructions.format(question=question, memories=memories))
     return {"user_messages": [AIMessage(content=response.content)]}
 
 def generate_query(state: OverallState, config: RunnableConfig) ->  QueryGenerationState:
@@ -49,9 +51,11 @@ def generate_query(state: OverallState, config: RunnableConfig) ->  QueryGenerat
     llm = get_llm()
     structured_llm = llm.with_structured_output(rag_query_list)
 
+    memories = state.get("memories", "")
     fomatted_prompt =  query_writer_instructions.format(
         research_topic=get_research_topic(state["user_messages"]),
-        rag_loop_count=state.get("rag_loop_count", 0)
+        rag_loop_count=state.get("rag_loop_count", 0),
+        memories=memories,
     )
     
     result = structured_llm.invoke(fomatted_prompt)
@@ -201,10 +205,12 @@ def evaluate_research(
 def finalize_answer(state: OverallState, config: RunnableConfig):
     config_runnable = Configuration.from_runnable_config(config)
     reasoning_model = state.get("reasoning_model", config_runnable.answer_model)
+    memories = state.get("memories", "")
     formatted_prompt = answer_instructions.format(
         research_topic=get_research_topic(state["user_messages"]),
         summaries="\n\n---\n\n".join(state["rag_query_result"]),
-        rag_loop_count=state.get("rag_loop_count", 0)
+        rag_loop_count=state.get("rag_loop_count", 0),
+        memories=memories,
     )
 
     llm = get_llm()

@@ -24,6 +24,9 @@ Thumbs.db
 # Qdrant
 storage/
 
+# SQLite database (platform data, not personality)
+data/
+
 # Generated data
 documents_chunks.json
 agent_results*.json

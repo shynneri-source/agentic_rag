@@ -10,6 +10,9 @@ An **intelligent Retrieval-Augmented Generation (RAG)** system powered by a Lang
 - **Bilingual Queries** — Always generates 1 English + 1 user-language query for best document coverage
 - **Real-Time Streaming** — SSE-based streaming UI showing each agent step (query generation, search, reflection, answer)
 - **Smart Intent Routing** — LLM-based router distinguishes between document queries and general conversation
+- **Persistent Conversations** — SQLite-backed session and conversation history with per-conversation message storage
+- **Long-Term Memory** — LLM-extracted memories stored in Qdrant as vectors, retrieved semantically across sessions
+- **Memory-Aware Prompts** — Every agent node (router, query generation, reflection, answer, chat) injects relevant memories for personalization
 - **Local-First** — All models run locally via llama.cpp + Qdrant; no cloud dependencies
 - **Relevance Guard** — Post-retrieval keyword filter prevents hallucination from semantically mismatched documents
 - **Configurable** — Model selection, RAG loop count, query count all adjustable per request
@@ -43,7 +46,8 @@ flowchart TD
 |---|---|
 | **LLM** | Qwen3.5-4B-Q4_K_M via llama.cpp (OpenAI-compatible API) |
 | **Embeddings** | Qwen/Qwen3-Embedding-0.6B (SentenceTransformers, 1024-dim) |
-| **Vector DB** | Qdrant (local, cosine distance) |
+| **Vector DB** | Qdrant (local, cosine distance) — document & memory collections |
+| **Conversation Store** | SQLite (`data/conversations.db`) |
 | **Orchestration** | LangGraph (StateGraph + Send fan-out) |
 | **API** | FastAPI + Server-Sent Events (SSE) |
 | **Frontend** | Single-page HTML chat interface |
@@ -151,9 +155,29 @@ SSE-streamed chat with real-time agent progress. Events:
 | `complete` | Processing stats |
 | `error` | Error message |
 
-### `GET /api/chat/history`
-### `DELETE /api/chat/history`
-### `GET /api/health`
+### Conversation & Session Management
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/chat/sessions?session_id=...` | GET | List all conversations for a session |
+| `/api/chat/history?conversation_id=...` | GET | Get full message history for a conversation |
+| `/api/chat/sessions/{conversation_id}` | DELETE | Delete a conversation and its memories |
+| `/api/chat/history?session_id=...` | DELETE | Clear all conversations for a session |
+
+### Memory Management
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/memories?session_id=...` | GET | List all long-term memories |
+| `/api/memories/search?session_id=...&query=...` | GET | Search memories semantically |
+| `/api/memories/{memory_id}` | DELETE | Delete a specific memory |
+| `/api/memories?session_id=...` | DELETE | Clear all memories for a session |
+
+### Health
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/health` | GET | Health check |
 
 ---
 
@@ -170,10 +194,15 @@ agentic-rag/
 │   └── utils.py                # Helper functions
 ├── core/
 │   └── model.py                # LLM, Embedding & RAG engine (ModelManager)
+├── store/                      # Persistence layer
+│   ├── conversation_store.py   # SQLite-backed conversation history
+│   ├── memory_store.py         # Qdrant-backed long-term memory
+│   └── memory_extractor.py     # LLM-based memory extraction
 ├── rag/
 │   ├── documents_processing.py # Document chunking pipeline
 │   └── documents_embedding.py  # Embedding generation & Qdrant upsert
 ├── documents/                  # Place your source documents here
+├── data/                       # Auto-created SQLite database directory
 ├── app.py                      # FastAPI server + SSE streaming
 ├── example.py                  # CLI interactive agent
 ├── process_questions.py        # Batch question processor
@@ -188,17 +217,21 @@ agentic-rag/
 
 ## How It Works
 
-1. **Router**: Classifies the user's question as needing document search (`rag`) or general conversation (`chat`).
+1. **Context Loading**: On each request, the system loads recent conversation history (last 10 messages from SQLite) and semantically relevant long-term memories (from Qdrant) to inject as context.
 
-2. **Query Generation**: For RAG questions, the LLM generates 2 search queries (1 English + 1 in the user's language) optimized for vector retrieval.
+2. **Router**: Classifies the user's question as needing document search (`rag`) or general conversation (`chat`). The router receives memories and history for context.
 
-3. **Parallel Search**: Each query searches Qdrant's vector database. The top result is returned as raw document content (not LLM-summarized).
+3. **Query Generation**: For RAG questions, the LLM generates 2 search queries (1 English + 1 in the user's language) optimized for vector retrieval, informed by memories and history.
 
-4. **Relevance Filter**: A keyword-overlap check validates that the retrieved document actually relates to the query, preventing hallucination from semantically mismatched matches.
+4. **Parallel Search**: Each query searches Qdrant's document vector database. The top result is returned as raw document content (not LLM-summarized).
 
-5. **Reflection**: The LLM evaluates all accumulated content against the original question. If information is insufficient, it generates follow-up queries. Up to `max_rag_loops` cycles.
+5. **Relevance Filter**: A keyword-overlap check validates that the retrieved document actually relates to the query, preventing hallucination from semantically mismatched matches.
 
-6. **Final Answer**: The LLM synthesizes a final answer (in the user's language) with source citations from all retrieved documents.
+6. **Reflection**: The LLM evaluates all accumulated content against the original question. If information is insufficient, it generates follow-up queries. Up to `max_rag_loops` cycles.
+
+7. **Final Answer**: The LLM synthesizes a final answer (in the user's language) with source citations from all retrieved documents.
+
+8. **Persistence**: After each response, the user message and assistant response are stored in SQLite. A background task then uses the LLM to extract any salient facts (preferences, goals, personal context) and stores them as vector memories in Qdrant for future conversations.
 
 ### llama.cpp Server
 

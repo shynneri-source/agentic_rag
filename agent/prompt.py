@@ -6,6 +6,8 @@ Instructions:
 - The second query should capture the same concepts in the user's language.
 - If this is the first search (rag_loop_count = 0), write broad/general queries.
 - If this is a follow-up search (rag_loop_count > 0), write more specific queries targeting identified knowledge gaps.
+- Use the conversation history to understand context and refer to previous topics if relevant.
+- Relevant memories from past conversations are provided below if available.
 
 Format:
 - Return JSON with exactly 2 keys:
@@ -25,6 +27,7 @@ Question: "What are the applications of Machine Learning in healthcare?"
 Input:
 - Question: {research_topic}
 - RAG loop count: {rag_loop_count}
+- Relevant memories: {memories}
 """
 
 reflection_instructions = """You are a research analyst evaluating whether the retrieved documents are sufficient to answer the user's question about "{research_topic}".
@@ -74,20 +77,26 @@ router_instructions = """You are an intelligent classifier. Your task: return EX
 "rag" = Questions that NEED to look up specialized documents, legal texts, specific events/figures from reports, or information only available in the document store.
 
 Examples of "chat":
-- "hello" / greetings in any language → chat
-- "what is your name" → chat
-- "thank you" → chat
-- "clear" → chat (single word command)
-- "what is AI" → chat (general knowledge)
-- "what is blockchain" → chat (general knowledge)
+- "hello" / greetings in any language -> chat
+- "what is your name" -> chat
+- "thank you" -> chat
+- "clear" -> chat (single word command)
+- "what is AI" -> chat (general knowledge)
+- "what is blockchain" -> chat (general knowledge)
 
 Examples of "rag":
-- "What was the GDP growth in Q3 2024?" → rag (specific data)
-- "Explain Article 14 of the constitution" → rag (legal document)
-- "When was the company founded?" → rag (specific historical info)
-- "Statistics about renewable energy adoption" → rag
+- "What was the GDP growth in Q3 2024?" -> rag (specific data)
+- "Explain Article 14 of the constitution" -> rag (legal document)
+- "When was the company founded?" -> rag (specific historical info)
+- "Statistics about renewable energy adoption" -> rag
 
 IMPORTANT: When in doubt, prefer "chat".
+
+Conversation history (if any) is provided in <conversation_history> tags for context.
+Use it to understand follow-up questions and references to previous topics.
+
+Relevant memories from past conversations:
+{memories}
 
 Question: {question}
 Answer:"""
@@ -98,7 +107,15 @@ You do NOT need to look up documents for this question.
 
 IMPORTANT: Always respond in the SAME language as the user's question.
 
-Question: {question}"""
+Conversation context:
+- The conversation history (if any) is provided in <conversation_history> and <last_exchange> tags.
+- The current question is in <current_question> tags.
+- Use the history to provide coherent follow-up responses and reference previous topics when relevant.
+
+Relevant memories from past conversations:
+{memories}
+
+{question}"""
 
 answer_instructions = """Generate a high-quality answer to the user's question based on the provided document content.
 
@@ -130,6 +147,8 @@ Example:
 User context:
 - Question: {research_topic}
 - RAG loops performed: {rag_loop_count}
+- Relevant memories: {memories}
 
 Document content:
-{summaries}"""
+{summaries}
+"""

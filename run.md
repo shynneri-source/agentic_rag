@@ -104,8 +104,14 @@ API endpoints:
 | `/` | GET | Chat interface |
 | `/api/chat` | POST | Synchronous chat |
 | `/api/chat/stream` | POST | Streaming chat (SSE) |
-| `/api/chat/history` | GET | Chat history |
-| `/api/chat/history` | DELETE | Clear chat history |
+| `/api/chat/sessions?session_id=...` | GET | List conversations |
+| `/api/chat/history?conversation_id=...` | GET | Get conversation messages |
+| `/api/chat/sessions/{conversation_id}` | DELETE | Delete conversation |
+| `/api/chat/history?session_id=...` | DELETE | Clear all conversations |
+| `/api/memories?session_id=...` | GET | List long-term memories |
+| `/api/memories/search?session_id=...&query=...` | GET | Search memories |
+| `/api/memories/{memory_id}` | DELETE | Delete a memory |
+| `/api/memories?session_id=...` | DELETE | Clear all memories |
 | `/api/health` | GET | Health check |
 
 ### 4b. Interactive CLI
@@ -162,8 +168,8 @@ START → router (LLM intent classification)
 | `REFLECTION_MODEL` | Evaluation model | `Qwen3.5-4B-Q4_K_M.gguf` |
 | `RAG_MODEL` | RAG model | `Qwen3.5-4B-Q4_K_M.gguf` |
 | `ANSWER_MODEL` | Answer generation model | `Qwen3.5-4B-Q4_K_M.gguf` |
-| `MAX_RAG_LOOPS` | Max RAG evaluation cycles | 3 |
-| `NUMBER_OF_INITIAL_QUERIES` | Initial search queries | 2 |
+| `MAX_RAG_LOOPS` | Max RAG evaluation cycles | 4 |
+| `NUMBER_OF_INITIAL_QUERIES` | Initial search queries | 3 |
 
 ### Key Configuration Files
 
@@ -172,6 +178,9 @@ START → router (LLM intent classification)
 | `.env` | LLM URL, API key, model, Qdrant host/port, embedding model |
 | `core/model.py` | Reads automatically from `.env` |
 | `agent/config.py` | LangGraph configuration schema |
+| `store/conversation_store.py` | SQLite DB path, table schema |
+| `store/memory_store.py` | Qdrant memory collection name, embedding dimension |
+| `store/memory_extractor.py` | Memory extraction prompt, importance threshold |
 | `rag/documents_processing.py` | Chunk size, overlap, separators |
 | `rag/documents_embedding.py` | Qdrant config, batch sizes |
 
@@ -210,3 +219,6 @@ START → router (LLM intent classification)
 | LLM returns errors | Verify LLM server is running and URL is correct in `.env` |
 | CUDA errors | System auto-detects device, falls back to CPU |
 | `nan` embeddings on macOS | `attn_implementation="eager"` is configured to avoid SDPA errors |
+| Memory extraction slow | Memory extraction runs as background task; does not affect response time |
+| Memories not appearing | Check that `conversation_memories` collection exists in Qdrant |
+| Conversation lost after restart | SQLite DB persists in `data/conversations.db`; ensure directory is writable |

@@ -14,6 +14,7 @@ class OverallState(TypedDict):
     reasoning_model: str
     intent: str
     router_reason: str
+    memories: str  # Relevant memories from past conversations
 
 class ReflectionState(TypedDict):
     is_sufficient: bool
