@@ -294,12 +294,12 @@ class DocumentEmbeddingManager:
             query_embedding = query_embedding.cpu().numpy()
         
         # Search in Qdrant
-        search_results = self.qdrant_client.search(
+        search_results = self.qdrant_client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_embedding.tolist(),
+            query=query_embedding.tolist(),
             limit=limit,
             score_threshold=score_threshold
-        )
+        ).points
         
         # Format results
         results = []

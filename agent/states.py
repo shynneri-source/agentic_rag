@@ -12,6 +12,8 @@ class OverallState(TypedDict):
     max_rag_loops: int
     rag_loop_count: int
     reasoning_model: str
+    intent: str
+    router_reason: str
 
 class ReflectionState(TypedDict):
     is_sufficient: bool

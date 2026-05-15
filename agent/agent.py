@@ -1,25 +1,44 @@
-import os
+import re
 from IPython.display import Image, display
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.types import Send
 from langgraph.graph import StateGraph, START, END
 from langchain_core.runnables import RunnableConfig
-from langchain_openai import ChatOpenAI
 
-from agent.states import OverallState, ReflectionState, QueryGenerationState, rag_query_state, RagStateOutput, Query
+from agent.states import OverallState, ReflectionState, QueryGenerationState, rag_query_state, Query
 
 from agent.config import Configuration
 
-from agent.prompt import query_writer_instructions, reflection_instructions, answer_instructions
+from agent.prompt import query_writer_instructions, reflection_instructions, answer_instructions, router_instructions, chat_instructions
 
 from agent.schema import Reflection, rag_query_list, FinalAnswer
 
 from agent.utils import get_research_topic
 
-from core.model import ask_question
+from core.model import get_llm, model_manager
+from typing import Literal
 
 
+
+def router_node(state: OverallState, config: RunnableConfig) -> dict:
+    llm = get_llm()
+    question = get_research_topic(state["user_messages"])
+    response = llm.invoke(router_instructions.format(question=question))
+    content = response.content.strip().lower()
+    intent = "rag" if "rag" in content else "chat"
+    return {"intent": intent, "router_reason": content[:200]}
+
+def route_decision(state: OverallState) -> Literal["chat", "generate_query"]:
+    if state.get("intent") == "rag":
+        return "generate_query"
+    return "chat"
+
+def chat_node(state: OverallState, config: RunnableConfig) -> OverallState:
+    llm = get_llm()
+    question = get_research_topic(state["user_messages"])
+    response = llm.invoke(chat_instructions.format(question=question))
+    return {"user_messages": [AIMessage(content=response.content)]}
 
 def generate_query(state: OverallState, config: RunnableConfig) ->  QueryGenerationState:
 
@@ -27,8 +46,7 @@ def generate_query(state: OverallState, config: RunnableConfig) ->  QueryGenerat
     if state.get("initial_rag_query_count"):
         config_runnable.number_of_initial_queries = state["initial_rag_query_count"]
 
-    from core.model import get_llm
-    llm = get_llm()  # Reuse the existing LLM instance
+    llm = get_llm()
     structured_llm = llm.with_structured_output(rag_query_list)
 
     fomatted_prompt =  query_writer_instructions.format(
@@ -41,29 +59,92 @@ def generate_query(state: OverallState, config: RunnableConfig) ->  QueryGenerat
     return {"rag_query": result.query}
 
 def continue_rag_process(state: QueryGenerationState):
-
+    queries = state.get("rag_query", [])
+    if not queries:
+        return "chat"
     return[
         Send("rag_research", {"rag_query": rag_query, "id": int(idx)})
-        for idx, rag_query in enumerate(state["rag_query"])
+        for idx, rag_query in enumerate(queries)
     ] 
+
+
+def _is_relevant(query: str, doc_content: str) -> bool:
+    """Check if document contains keywords from the query.
+    Prevents semantic search from retrieving irrelevant documents.
+    """
+    query_lower = query.lower()
+    doc_lower = doc_content.lower()
+
+    stop_words = {
+        'la', 'cua', 'va', 'co', 'duoc', 'cac', 'nhung', 'voi', 'tren', 've',
+        'cho', 'de', 'tu', 'trong', 'khi', 'se', 'nay', 'mot', 'viec', 'khong',
+        'tai', 'vao', 'ra', 'hay', 'hoac', 'theo', 'sau', 'truoc', 'qua', 'lai',
+        'da', 'dang', 'gi', 'ai', 'bao', 'nhieu', 'o', 'thi', 'vi', 'nen',
+        'rat', 'nhu', 'cung', 'deu', 'ma',
+        'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had',
+        'her', 'was', 'one', 'our', 'out', 'has', 'have', 'been', 'some', 'them',
+        'than', 'what', 'when', 'which', 'their', 'about', 'would', 'could',
+        'there', 'only', 'other', 'into', 'more', 'also', 'how', 'its',
+    }
+
+    query_words = set(re.findall(r'\w+', query_lower))
+    query_words = {w for w in query_words if len(w) >= 3 and w not in stop_words}
+
+    if not query_words:
+        return True
+
+    for word in query_words:
+        if word in doc_lower:
+            return True
+
+    return False
+
 
 def rag_research(state: rag_query_state, config: RunnableConfig) -> OverallState:
     """
-    Node RAG research: Sử dụng RAG system để tìm kiếm và trả về kết quả
+    RAG research node: Use the RAG system to search and return results
     """
-    # Sử dụng RAG system để tìm kiếm thông tin
-    rag_result = ask_question(
-        question=state["rag_query"],
+    query = state["rag_query"]
+
+    docs = model_manager.search_similar_documents(
+        query=query,
         collection_name="document_embeddings",
-        max_contexts=5,
-        score_threshold=0.3,
-        language="vietnamese"
+        limit=1,
+        score_threshold=0.35
     )
+
+    if not docs:
+        return {
+            "rag_query": [query],
+            "rag_query_result": ["No relevant documents found."],
+            "source_gathered": [],
+        }
+
+    relevant_docs = [doc for doc in docs if _is_relevant(query, doc["content"])]
+
+    if not relevant_docs:
+        return {
+            "rag_query": [query],
+            "rag_query_result": ["No relevant documents found."],
+            "source_gathered": [],
+        }
+
+    raw_contents = []
+    sources = []
+    for i, doc in enumerate(relevant_docs):
+        content = doc["content"]
+        content = re.sub(
+            r'Nội dung:\s*(\d{2}:\d{2})\s+(\d{2}/\d{2}/\d{4})(\d+)',
+            r'Published: \2 - Time: \1 | Content:',
+            content
+        )
+        raw_contents.append(f"[Source {i+1}]: {content}")
+        sources.append(doc["filename"])
     
-    # Cập nhật state với kết quả RAG
     return {
-        "rag_query_result": [rag_result["answer"]],
-        "source_gathered": [source["filename"] for source in rag_result["sources"]],
+        "rag_query": [query],
+        "rag_query_result": raw_contents,
+        "source_gathered": sources,
     }
 
 def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
@@ -82,8 +163,7 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
         max_rag_loops=state.get("max_rag_loops", config_runnable.max_rag_loops)
     )
 
-    from core.model import get_llm
-    llm = get_llm()  # Reuse the existing LLM instance
+    llm = get_llm()
     result = llm.with_structured_output(Reflection).invoke(fomatted_prompt)
 
     return {
@@ -127,13 +207,7 @@ def finalize_answer(state: OverallState, config: RunnableConfig):
         rag_loop_count=state.get("rag_loop_count", 0)
     )
 
-    llm = ChatOpenAI(
-        model=reasoning_model,
-        base_url="http://localhost:1234/v1",  # Default LMStudio local server
-        api_key="lm-studio",  # LMStudio doesn't require a real API key
-        temperature=0.7,
-    )
-
+    llm = get_llm()
     structured_llm = llm.with_structured_output(FinalAnswer)
     result = structured_llm.invoke(formatted_prompt)
 
@@ -165,15 +239,19 @@ def get_graph_visualization(self, image_path: str = "./workflow.png") -> None:
 builder = StateGraph(OverallState, config_schema=Configuration)
 
 
+builder.add_node("router", router_node)
+builder.add_node("chat", chat_node)
 builder.add_node("generate_query", generate_query)
 builder.add_node("rag_research", rag_research)
 builder.add_node("reflection", reflection)
 builder.add_node("finalize_answer", finalize_answer)
 
 
-builder.add_edge (START, "generate_query")
+builder.add_edge(START, "router")
+builder.add_conditional_edges("router", route_decision, {"chat": "chat", "generate_query": "generate_query"})
+builder.add_edge("chat", END)
 
-builder.add_conditional_edges("generate_query", continue_rag_process, ["rag_research"])
+builder.add_conditional_edges("generate_query", continue_rag_process, {"rag_research": "rag_research", "chat": "chat"})
 
 builder.add_edge("rag_research", "reflection")
 

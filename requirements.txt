@@ -21,7 +21,6 @@ langgraph
 
 # For document processing and embeddings
 sentence-transformers
-faiss-cpu
 python-docx
 PyPDF2
 

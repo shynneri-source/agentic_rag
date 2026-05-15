@@ -15,10 +15,10 @@ def process_questions(questions):
     
     # Cấu hình mặc định cho agent
     default_config = {
-        "query_generator_model": "qwen/qwen3-30b-a3b",
-        "reflection_model": "qwen/qwen3-30b-a3b", 
-        "rag_model": "qwen/qwen3-30b-a3b",
-        "answer_model": "qwen/qwen3-30b-a3b",
+        "query_generator_model": "Qwen3.5-4B-Q4_K_M.gguf",
+        "reflection_model": "Qwen3.5-4B-Q4_K_M.gguf", 
+        "rag_model": "Qwen3.5-4B-Q4_K_M.gguf",
+        "answer_model": "Qwen3.5-4B-Q4_K_M.gguf",
         "max_rag_loops": 3,
         "number_of_initial_queries": 2
     }
@@ -37,7 +37,9 @@ def process_questions(questions):
                 "rag_query_result": [],
                 "source_gathered": [],
                 "initial_rag_query_count": config["configurable"]["number_of_initial_queries"],
-                "max_rag_loops": config["configurable"]["max_rag_loops"]
+                "max_rag_loops": config["configurable"]["max_rag_loops"],
+                "intent": "",
+                "router_reason": "",
             }
             
             # Chạy agent graph với state ban đầu

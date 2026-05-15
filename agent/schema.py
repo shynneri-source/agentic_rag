@@ -30,3 +30,11 @@ class FinalAnswer(BaseModel):
     summary: str = Field(
         description="A brief summary of the research process"
     )
+
+class Router(BaseModel):
+    intent: str = Field(
+        description="'rag' if question needs document knowledge, 'chat' for general conversation"
+    )
+    reason: str = Field(
+        description="Brief explanation for the classification"
+    )

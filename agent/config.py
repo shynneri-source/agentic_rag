@@ -4,7 +4,7 @@ from typing import Any, Optional
 from langchain_core.runnables import RunnableConfig
 
 
-model = "qwen/qwen3-30b-a3b"
+model = "Qwen3.5-4B-Q4_K_M.gguf"
 
 class Configuration(BaseModel):
     """The configuration for the agent."""

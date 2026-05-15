@@ -1,8 +1,13 @@
+import os
+from dotenv import load_dotenv
+os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
+
+load_dotenv()
+
 from langchain_openai import ChatOpenAI
 from sentence_transformers import SentenceTransformer
-from langchain.schema import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from qdrant_client import QdrantClient
-import os
 import numpy as np
 from typing import List, Dict, Any, Optional
 
@@ -15,24 +20,33 @@ class ModelManager:
         self._initialize_models()
     
     def _initialize_models(self):
-        """Initialize LLM and embedding models"""
+        """Initialize LLM and embedding models from environment variables"""
+        # Load from .env with fallback defaults
+        llm_base_url = os.getenv("LLM_BASE_URL", "http://localhost:8000/v1")
+        llm_api_key = os.getenv("LLM_API_KEY", "not-needed")
+        llm_model = os.getenv("LLM_MODEL", "Qwen3.5-4B-Q4_K_M.gguf")
+        llm_temperature = float(os.getenv("LLM_TEMPERATURE", "0.7"))
+        qdrant_host = os.getenv("QDRANT_HOST", "localhost")
+        qdrant_port = int(os.getenv("QDRANT_PORT", "6333"))
+        embedding_model = os.getenv("EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-0.6B")
+        
         # Initialize LLM with LangChain OpenAI for LMStudio
         self.llm = ChatOpenAI(
-            model="qwen/qwen3-30b-a3b",
-            base_url="http://localhost:1234/v1",  # Default LMStudio local server
-            api_key="lm-studio",  # LMStudio doesn't require a real API key
-            temperature=0.7,
+            model=llm_model,
+            base_url=llm_base_url,
+            api_key=llm_api_key,
+            temperature=llm_temperature,
         )
-        # Initialize embedding model with Sentence Transformers (force GPU)
+        # Initialize embedding model with Sentence Transformers (auto device: cuda > mps > cpu)
         self.embedding_model = SentenceTransformer(
-            "Qwen/Qwen3-Embedding-0.6B",
-            device="cuda"  # Force GPU
+            embedding_model,
+            model_kwargs={"attn_implementation": "eager"},
         )
         
         # Initialize Qdrant client
         self.qdrant_client = QdrantClient(
-            host="localhost",
-            port=6333
+            host=qdrant_host,
+            port=qdrant_port
         )
     
     def get_llm(self):
@@ -44,10 +58,10 @@ class ModelManager:
         return self.embedding_model
     
     def generate_embeddings(self, texts):
-        """Generate embeddings for a list of texts (always use GPU)"""
+        """Generate embeddings for a list of texts"""
         if isinstance(texts, str):
             texts = [texts]
-        return self.embedding_model.encode(texts, device="cuda")
+        return self.embedding_model.encode(texts)
     
     def search_similar_documents(
         self, 
@@ -75,12 +89,12 @@ class ModelManager:
             query_embedding = query_embedding.cpu().numpy()
         
         # Search in Qdrant
-        search_results = self.qdrant_client.search(
+        search_results = self.qdrant_client.query_points(
             collection_name=collection_name,
-            query_vector=query_embedding.tolist(),
+            query=query_embedding.tolist(),
             limit=limit,
             score_threshold=score_threshold
-        )
+        ).points
         
         # Format results
         results = []

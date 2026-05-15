@@ -1,110 +1,143 @@
+query_writer_instructions = """/nothink Your goal is to generate search queries for the RAG database. Always generate exactly 2 queries: one in English and one in Vietnamese. This ensures the best coverage across all indexed documents.
 
+Instructions:
+- Always generate exactly 2 queries: 1 in English, 1 in Vietnamese.
+- The English query should capture the core concepts in English keywords.
+- The Vietnamese query should capture the same concepts in Vietnamese.
+- If this is the first search (rag_loop_count = 0), write broad/general queries.
+- If this is a follow-up search (rag_loop_count > 0), write more specific queries targeting identified knowledge gaps.
 
-query_writer_instructions = """/nothink Mục tiêu của bạn là tạo ra các truy vấn tìm kiếm thông tin tinh vi và đa dạng từ cơ sở dữ liệu RAG. Các truy vấn này nhằm tìm kiếm thông tin chính xác để trả lời câu hỏi của người dùng.
+Format:
+- Return JSON with exactly 2 keys:
+   - "rationale": Brief explanation of why these queries are suitable
+   - "query": A list of exactly 2 search query strings [English, Vietnamese]
 
-Hướng dẫn:
-- Ưu tiên sử dụng một truy vấn duy nhất, chỉ thêm truy vấn khác nếu câu hỏi gốc yêu cầu nhiều khía cạnh và một truy vấn không đủ.
-- Mỗi truy vấn nên tập trung vào một khía cạnh cụ thể của câu hỏi gốc.
-- Không tạo quá 2 truy vấn.
-- Không tạo nhiều truy vấn tương tự nhau, 1 là đủ.
-- Nếu đây là lần tìm kiếm đầu tiên (rag_loop_count = 0), tạo truy vấn tổng quát.
-- Nếu đây là lần tìm kiếm tiếp theo (rag_loop_count > 0), tạo truy vấn cụ thể hơn.
+Example:
 
-Định dạng:
-- Trả về JSON với chính xác 2 khóa sau:
-   - "rationale": Giải thích ngắn gọn tại sao những truy vấn này phù hợp
-   - "query": Danh sách các truy vấn tìm kiếm
-
-Ví dụ:
-
-Câu hỏi: "Machine Learning trong y tế có những ứng dụng gì?"
+Question: "What are the applications of Machine Learning in healthcare?"
 ```json
 {{
-    "rationale": "Câu hỏi về ứng dụng ML trong y tế cần tìm kiếm thông tin về các lĩnh vực cụ thể, công nghệ được sử dụng và các trường hợp thực tế để đưa ra câu trả lời toàn diện.",
-    "query": ["Machine Learning ứng dụng y tế chẩn đoán hình ảnh", "AI trí tuệ nhân tạo phát hiện bệnh", "học máy dự đoán điều trị bệnh nhân"]
+    "rationale": "Generated one English and one Vietnamese query to cover documents in both languages about ML applications in healthcare.",
+    "query": ["Machine Learning applications healthcare diagnosis treatment", "Machine Learning ứng dụng y tế chẩn đoán điều trị"]
 }}
 ```
 
-Câu hỏi: "Blockchain là gì?"
+Question: "Blockchain là gì?"
 ```json
 {{
-    "rationale": "Đây là câu hỏi cơ bản về khái niệm, cần tìm kiếm định nghĩa, cách hoạt động và ứng dụng của blockchain để giải thích đầy đủ.",
-    "query": ["Blockchain định nghĩa cách hoạt động"]
+    "rationale": "The user asks about blockchain definition in Vietnamese, generating both English and Vietnamese queries for comprehensive search.",
+    "query": ["Blockchain definition how it works", "Blockchain định nghĩa cách hoạt động"]
 }}
 ```
 
-Thông tin đầu vào:
-- Câu hỏi: {research_topic}
-- Số lượt RAG đã thực hiện: {rag_loop_count}
+Input:
+- Question: {research_topic}
+- RAG loop count: {rag_loop_count}
 """
 
-reflection_instructions = """/nothink Bạn là một trợ lý nghiên cứu chuyên gia phân tích các bản tóm tắt về "{research_topic}".
+reflection_instructions = """/nothink You are a research analyst evaluating whether the retrieved documents are sufficient to answer the user's question about "{research_topic}".
 
-Hướng dẫn:
-- Xác định khoảng trống kiến thức hoặc các lĩnh vực cần khám phá sâu hơn và tạo ra truy vấn tiếp theo (1 hoặc nhiều).
-- Nếu các bản tóm tắt được cung cấp đủ để trả lời câu hỏi của người dùng, không tạo truy vấn tiếp theo.
-- Nếu có khoảng trống kiến thức, tạo truy vấn tiếp theo sẽ giúp mở rộng hiểu biết.
-- Tập trung vào chi tiết kỹ thuật, đặc điểm triển khai, hoặc xu hướng mới nổi chưa được đề cập đầy đủ.
-- Xem xét giới hạn số lượt RAG ({max_rag_loops}) để quyết định có nên tiếp tục hay không.
+Instructions:
+- Identify knowledge gaps or areas needing deeper exploration.
+- If the retrieved content is sufficient to answer the question, do not generate follow-up queries.
+- If there are knowledge gaps, generate follow-up queries to gather more information.
+- Focus on technical details, specific data, or implementation specifics not yet covered.
+- Respect the maximum RAG loop limit ({max_rag_loops}).
+- IMPORTANT: If the retrieved documents are NOT RELEVANT to the question (do not address the topic asked), set is_sufficient = true and describe the gap as "No relevant information found in documents." Do NOT generate more queries. Do NOT fabricate information.
+- IMPORTANT: Do NOT state that documents contain information about a topic if they actually do not. Analyze based on actual document content only.
 
-Yêu cầu:
-- Đảm bảo truy vấn tiếp theo độc lập và bao gồm ngữ cảnh cần thiết cho tìm kiếm.
+Requirements:
+- Follow-up queries must be independent and include necessary context.
 
-Định dạng đầu ra:
-- Trả về JSON với chính xác các khóa sau:
-   - "is_sufficient": true hoặc false
-   - "knowledge_gap": Mô tả thông tin còn thiếu hoặc cần làm rõ
-   - "follow_up_queries": Viết câu hỏi cụ thể để giải quyết khoảng trống này
+Output format:
+- Return JSON with exactly these keys:
+   - "is_sufficient": true or false
+   - "knowledge_gap": Description of missing or unclear information
+   - "follow_up_queries": Specific questions to address the gap
 
-Ví dụ:
+Example:
 ```json
 {{
-    "is_sufficient": true, // hoặc false
-    "knowledge_gap": "Bản tóm tắt thiếu thông tin về các chỉ số hiệu suất và điểm chuẩn", // "" nếu is_sufficient là true
-    "follow_up_queries": ["Các điểm chuẩn và chỉ số hiệu suất điển hình được sử dụng để đánh giá [công nghệ cụ thể] là gì?"] // [] nếu is_sufficient là true
+    "is_sufficient": false,
+    "knowledge_gap": "Documents lack information about performance benchmarks and evaluation metrics",
+    "follow_up_queries": ["What are the typical benchmarks and evaluation metrics used for assessing [specific technology]?"]
 }}
 ```
 
-Suy ngẫm cẩn thận về các Bản tóm tắt để xác định khoảng trống kiến thức và tạo truy vấn tiếp theo. Sau đó, tạo đầu ra theo định dạng JSON này:
+Carefully analyze the document content to determine knowledge gaps. Generate output in this JSON format.
 
-Thông tin đầu vào:
-- Câu hỏi gốc: {research_topic}
-- Số lượt RAG đã thực hiện: {rag_loop_count}
-- Giới hạn tối đa lượt RAG: {max_rag_loops}
+Input:
+- Original question: {research_topic}
+- RAG loop count: {rag_loop_count}
+- Max RAG loops: {max_rag_loops}
 
-Bản tóm tắt:
+Document content:
 {summaries}
 """
 
-answer_instructions = """/nothink Tạo ra một câu trả lời chất lượng cao cho câu hỏi của người dùng dựa trên các bản tóm tắt được cung cấp.
+router_instructions = """You are an intelligent classifier. Your task: return EXACTLY ONE WORD: "rag" or "chat".
 
-Hướng dẫn:
-- Bạn là bước cuối cùng của một quy trình nghiên cứu nhiều bước, không đề cập rằng bạn là bước cuối cùng.
-- Bạn có quyền truy cập vào tất cả thông tin được thu thập từ các bước trước đó.
-- Bạn có quyền truy cập vào câu hỏi của người dùng.
-- Tạo một câu trả lời chất lượng cao cho câu hỏi của người dùng dựa trên các bản tóm tắt được cung cấp và câu hỏi của người dùng.
-- Bao gồm các nguồn bạn đã sử dụng từ Bản tóm tắt trong câu trả lời một cách chính xác, sử dụng định dạng markdown (ví dụ: [nguồn](link)). ĐIỀU NÀY LÀ BẮT BUỘC nếu có thông tin nguồn.
-- Câu trả lời phải bằng tiếng Việt.
-- Tổ chức thông tin một cách logic và dễ hiểu.
-- Đảm bảo câu trả lời trực tiếp và đầy đủ.
-- Chỉ sử dụng thông tin có trong nội dung RAG, không tự tạo thêm thông tin.
+"chat" = General questions, vocabulary definitions, commands, typos, exclamations, chit-chat, common knowledge questions, or anything that does NOT need specific document lookup.
 
-Định dạng đầu ra:
-- Trả về JSON với chính xác các khóa sau:
-   - "content": Nội dung câu trả lời chính
-   - "summary": Tóm tắt ngắn gọn về quá trình tìm kiếm thông tin
+"rag" = Questions that NEED to look up specialized documents, legal texts, specific events/figures from reports, or information only available in the document store.
 
-Ví dụ:
+Examples of "chat":
+- "hello" / "xin chào" → chat
+- "what is your name" / "bạn tên gì" → chat
+- "thank you" / "cảm ơn" → chat
+- "clear" → chat (single word command)
+- "what is AI" / "AI là gì" → chat (general knowledge)
+- "what is blockchain" / "Blockchain là gì" → chat (general knowledge)
+
+Examples of "rag":
+- "When was Ho Chi Minh born" / "Hồ Chí Minh sinh năm bao nhiêu" → rag (specific historical info)
+- "Explain Decree 147" / "Trình bày về Nghị định 147" → rag (legal document)
+- "25th anniversary of summer volunteer campaign" → rag (specific event)
+- "Statistics about ..." / "Số liệu thống kê về ..." → rag
+
+IMPORTANT: When in doubt, prefer "chat".
+
+Question: {question}
+Answer:"""
+
+chat_instructions = """/nothink You are a friendly AI assistant. Answer the user's question naturally, warmly, and helpfully.
+
+You do NOT need to look up documents for this question.
+
+IMPORTANT: Always respond in the SAME language as the user's question. If they ask in English, answer in English. If they ask in Vietnamese, answer in Vietnamese.
+
+Question: {question}"""
+
+answer_instructions = """/nothink Generate a high-quality answer to the user's question based on the provided document content.
+
+Instructions:
+- This is the final step of a multi-step research process — do not mention you are the final step.
+- You have access to all information gathered from previous steps.
+- Generate a high-quality answer to the user's question based on provided document content.
+- Extract dates, proper names, and exact figures from the documents.
+- Include sources used in the answer using markdown format (e.g., [Source 1]). This is MANDATORY when source information is available.
+- Organize information logically and clearly.
+- Ensure the answer is direct and complete.
+- Only use information present in the document content — do not fabricate information.
+- IMPORTANT: If the documents are NOT RELEVANT to the question or do NOT CONTAIN an answer, state that no relevant information was found. Do NOT fabricate. Do NOT attribute unrelated document content to the answer.
+- IMPORTANT: Always respond in the SAME language as the user's question. If the user asks in English, answer in English. If they ask in Vietnamese, answer in Vietnamese.
+
+Output format:
+- Return JSON with exactly these keys:
+   - "content": The main answer content
+   - "summary": A brief summary of the research process
+
+Example:
 ```json
 {{
-    "content": "Câu trả lời đầy đủ cho câu hỏi, có thể bao gồm nhiều đoạn và trích dẫn nguồn",
-    "summary": "Đã tìm thấy thông tin từ X nguồn, qua Y vòng tìm kiếm, với các chủ đề chính là A, B, C"
+    "content": "The complete answer to the question, may include multiple paragraphs and source citations",
+    "summary": "Found information from X sources across Y search rounds, covering main topics A, B, C"
 }}
 ```
 
-Ngữ cảnh người dùng:
-- Câu hỏi: {research_topic}
-- Số lượt RAG đã thực hiện: {rag_loop_count}
+User context:
+- Question: {research_topic}
+- RAG loops performed: {rag_loop_count}
 
-Bản tóm tắt:
+Document content:
 {summaries}"""

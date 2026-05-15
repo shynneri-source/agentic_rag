@@ -22,10 +22,10 @@ def run_agent(question: str):
     # Cấu hình cho agent
     config = {
         "configurable": {
-            "query_generator_model": "qwen/qwen3-4b",
-            "reflection_model": "qwen/qwen3-4b", 
-            "rag_model": "qwen/qwen3-4b",
-            "answer_model": "qwen/qwen3-4b",
+            "query_generator_model": "Qwen3.5-4B-Q4_K_M.gguf",
+            "reflection_model": "Qwen3.5-4B-Q4_K_M.gguf", 
+            "rag_model": "Qwen3.5-4B-Q4_K_M.gguf",
+            "answer_model": "Qwen3.5-4B-Q4_K_M.gguf",
             "max_rag_loops": 3,
             "number_of_initial_queries": 2
         }
@@ -40,7 +40,9 @@ def run_agent(question: str):
         "initial_rag_query_count": 2,
         "max_rag_loops": 3,
         "rag_loop_count": 0,
-        "reasoning_model": "qwen/qwen3-4b"
+        "reasoning_model": "Qwen3.5-4B-Q4_K_M.gguf",
+        "intent": "",
+        "router_reason": "",
     }
     
     print(f"🤖 Agent đang xử lý câu hỏi: {question}")
