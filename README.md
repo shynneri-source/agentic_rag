@@ -132,7 +132,7 @@ Standard request-response chat:
 
 ```json
 {
-  "message": "Lễ kỷ niệm 25 năm Chiến dịch Thanh niên tình nguyện hè tại Bắc Giang được tổ chức vào ngày nào?",
+  "message": "Question",
   "config": {}
 }
 ```
