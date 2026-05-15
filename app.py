@@ -19,8 +19,8 @@ from agent.agent import graph
 from agent.config import Configuration
 
 app = FastAPI(
-    title="Agentic RAG Agent",
-    description="A modern web interface for the Agentic RAG Agent",
+    title="Shyn AI",
+    description="Shyn AI — Agentic RAG Agent",
     version="1.0.0"
 )
 

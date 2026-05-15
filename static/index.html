@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agentic RAG</title>
+    <title>Shyn AI</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
@@ -481,13 +481,47 @@
         }
 
         .input-container {
-            padding: 16px 24px 24px;
+            padding: 16px 24px 0;
             background: #ffffff;
             display: flex;
             justify-content: center;
             align-items: flex-end;
             width: 100%;
             flex-shrink: 0;
+        }
+
+        .footer {
+            padding: 8px 24px 16px;
+            text-align: center;
+            font-size: 11px;
+            color: #93939f;
+            flex-shrink: 0;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .footer a {
+            color: #75758a;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer a:hover {
+            color: #17171c;
+        }
+
+        .footer-sep {
+            color: #d9d9dd;
+        }
+
+        .footer.disclaimer {
+            padding: 0 24px 12px;
+            font-size: 10px;
+            color: #d9d9dd;
         }
 
         .input-wrapper {
@@ -868,7 +902,7 @@
                 <button class="menu-button" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1>Agentic RAG</h1>
+                <h1>Shyn AI</h1>
             </div>
             <div class="header-right">
                 <div class="status-indicator">
@@ -917,6 +951,15 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="footer">
+        <span>created by <a href="https://github.com/shynneri-source" target="_blank">shyn (shynneri)</a></span>
+        <span class="footer-sep">·</span>
+        <span>powered by <a href="https://www.langchain.com/" target="_blank">LangChain</a> &amp; <a href="https://langchain-ai.github.io/langgraph/" target="_blank">LangGraph</a></span>
+    </div>
+    <div class="footer disclaimer">
+        AI can make mistakes — double-check before use in important contexts
     </div>
 
     <script>
